@@ -1,0 +1,25 @@
+{
+  "id": "preset-gravity-flip",
+  "name": "重力反转",
+  "description": "每跳一次，重力方向反转。默认预设，无需模型密钥即可游玩。",
+  "dslVersion": "1.1.0",
+  "levelId": "lab-01",
+  "rules": [
+    {
+      "id": "rule-gravity-flip",
+      "trigger": {
+        "event": "player.jumpCommitted"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "op": "player.gravity.toggle",
+          "target": "player",
+          "params": {
+            "magnitude": 980
+          }
+        }
+      ]
+    }
+  ]
+}

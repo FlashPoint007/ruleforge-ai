@@ -1,0 +1,106 @@
+import { lazy, Suspense, useState } from "react";
+
+import { P0_ACTIONS } from "@ruleforge/rule-schema";
+
+// Phaser touches <canvas> as soon as it is evaluated, which jsdom does not
+// implement. The dynamic import keeps it out of the test environment and out of
+// the initial bundle until the player actually opens the lab.
+const GameCanvas = lazy(() =>
+  import("@/game/GameCanvas").then((module) => ({ default: module.GameCanvas })),
+);
+
+const PRESETS = [
+  {
+    id: "preset-gravity-flip",
+    name: "重力反转",
+    trigger: "每跳一次",
+    effect: "重力方向反转",
+  },
+  {
+    id: "preset-enemy-slow",
+    name: "拾金减速",
+    trigger: "捡到金币",
+    effect: "敌人减速 30%，持续 5 秒",
+  },
+];
+
+export function HomePage() {
+  const [arenaOpen, setArenaOpen] = useState(false);
+
+  return (
+    <div className="page">
+      <section className="hero">
+        <p className="hero__eyebrow">M0 · 工程脚手架</p>
+        <h2 className="hero__title">
+          用一句自然语言，
+          <br />
+          锻造一条能被验证的规则。
+        </h2>
+        <p className="hero__lead">
+          你说「每跳一次重力反转」，模型只负责产出受控的 Rule IR，
+          确定性编译器把它校验成带版本的 DSL，Phaser 在本地执行。
+          模型永远不返回可执行代码。
+        </p>
+
+        <div className="hero__actions">
+          <button
+            type="button"
+            className="button button--primary"
+            onClick={() => setArenaOpen((open) => !open)}
+          >
+            {arenaOpen ? "收起实验室" : "进入实验室"}
+          </button>
+          <span className="hero__hint">
+            当前为脚手架：实验室展示占位场景，移动与规则引擎在 RF-003 接入。
+          </span>
+        </div>
+      </section>
+
+      {arenaOpen ? (
+        <section className="panel" aria-label="实验室">
+          <Suspense fallback={<p className="panel__note">正在载入实验室…</p>}>
+            <GameCanvas />
+          </Suspense>
+        </section>
+      ) : null}
+
+      <section className="panel">
+        <h3 className="panel__title">预设规则</h3>
+        <p className="panel__note">
+          以下预设无需任何模型密钥即可使用，由 <code>game-content/presets</code> 提供。
+        </p>
+        <ul className="cards">
+          {PRESETS.map((preset) => (
+            <li key={preset.id} className="card">
+              <span className="card__name">{preset.name}</span>
+              <dl className="card__meta">
+                <div>
+                  <dt>触发</dt>
+                  <dd>{preset.trigger}</dd>
+                </div>
+                <div>
+                  <dt>效果</dt>
+                  <dd>{preset.effect}</dd>
+                </div>
+              </dl>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="panel panel--muted">
+        <h3 className="panel__title">已注册动作（{P0_ACTIONS.length} / 12）</h3>
+        <p className="panel__note">
+          AI 只能从这张注册表里选动作并填写受限参数，这是生成层与执行层的边界。
+        </p>
+        <ul className="chips">
+          {P0_ACTIONS.map((action) => (
+            <li key={action} className="chip">
+              {action}
+            </li>
+          ))}
+        </ul>
+      </section>
+    </div>
+  );
+}

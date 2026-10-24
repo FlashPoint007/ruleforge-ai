@@ -1,0 +1,120 @@
+# RuleForge AI ｜ 规则造物局
+
+> 用一句自然语言描述一条规则，得到一个经过确定性编译、可验证、可回放的关卡玩法。
+> Describe a rule in plain language — get a deterministic, validated, replayable game rule.
+
+**当前状态：M0 工程初始化（RF-001 / RF-002 脚手架）。游戏玩法、DSL 运行时与 LLM 接入尚未实现。**
+本项目处于开发早期，README 只描述**已经可以运行**的东西，不描述计划中的能力。
+
+---
+
+## 这是什么
+
+玩家用自然语言描述规则（例如「每跳一次重力反转」），服务端 LLM 只负责产出**受控的 Rule IR**，
+再由确定性编译器校验成带版本的 DSL，最后由 Phaser 在本地执行。
+
+- 模型**永远不返回可执行代码**，只返回结构化 IR。
+- 生成层与执行层严格分离：AI 只能选择预先注册的 Trigger / Condition / Operation。
+- 校验不依赖模型的 JSON mode：schema、类型、语义、冲突、关卡兼容性全部在服务端复检。
+
+完整技术方案见 [`docs/RuleForge_AI_V1.1.md`](docs/RuleForge_AI_V1.1.md)。
+
+## 仓库结构
+
+```text
+ruleforge-ai/
+├── apps/
+│   ├── web/            # React + Vite + TypeScript + Phaser 3 客户端（@ruleforge/web）
+│   └── api/            # FastAPI 服务端（uv 管理，app.main:app）
+├── packages/
+│   ├── rule-schema/    # DSL v1.1 的 JSON Schema / 枚举 / TS 类型（单一真相源）
+│   └── shared-types/   # 前后端共享的传输类型
+├── game-content/       # 关卡与预设规则数据
+├── tests/e2e/          # Playwright 端到端测试
+├── docs/               # 技术方案、API、ADR、发布检查单
+└── .github/workflows/  # CI
+```
+
+## 环境要求
+
+| 工具 | 版本 | 说明 |
+|---|---|---|
+| Node.js | >= 20（本机实测 22.x） | 前端构建与测试 |
+| pnpm | 11.x | 通过 Corepack 锁定 |
+| Python | 3.11 / 3.12 | 服务端 |
+| uv | 最新 | Python 依赖与虚拟环境 |
+| Git | 任意较新版本 | |
+
+## 快速开始
+
+### 1. 前端
+
+```bash
+pnpm install
+pnpm --filter @ruleforge/web dev        # http://localhost:5173
+```
+
+### 2. 后端（另开一个终端）
+
+```bash
+cd apps/api
+uv sync
+uv run uvicorn app.main:app --reload --port 8000
+```
+
+健康检查：
+
+```bash
+curl http://127.0.0.1:8000/api/v1/healthz
+# {"status":"ok","service":"ruleforge-api", ...}
+```
+
+> 默认 `LLM_PROVIDER=mock`，**不需要任何 API Key** 即可启动、进入主页并跑通全部测试。
+
+### 3. 环境变量
+
+复制示例文件后再按需修改，**不要提交 `.env`**：
+
+```bash
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.example apps/web/.env
+```
+
+`VITE_*` 变量会被打包进客户端，**严禁**在其中放 DeepSeek Key 或任何云凭据。
+
+## 测试与质量检查
+
+```bash
+# 前端：类型检查 + lint + 单元测试 + 构建
+pnpm --filter @ruleforge/web typecheck
+pnpm --filter @ruleforge/web lint
+pnpm --filter @ruleforge/web test
+pnpm --filter @ruleforge/web build
+
+# 端到端（需先安装浏览器：pnpm --filter @ruleforge/web exec playwright install chromium）
+pnpm --filter @ruleforge/web test:e2e
+
+# 后端
+cd apps/api
+uv run pytest -q
+uv run ruff check .
+```
+
+## 安全底线
+
+- 不执行模型返回的任意代码：没有 `eval` / `new Function` / 动态脚本执行。
+- 模型密钥只存在于服务端环境变量，绝不进入 `VITE_*`。
+- 固定 tick、有界事件队列、定时效果绑定模拟时钟，重置与规则替换时清理全部副作用。
+- 挑战链接不可变：DSL / 引擎 / 关卡版本与随机种子一起冻结。
+
+## 文档
+
+- [技术方案 V1.1](docs/RuleForge_AI_V1.1.md)
+- [API 契约](docs/API.md)
+- [ADR-001：规则 DSL](docs/ADR-001-rule-dsl.md)
+- [发布检查单](docs/RELEASE_CHECKLIST.md)
+- [Agent 工作约束](AGENTS.md)
+
+## 许可
+
+尚未确定，默认保留所有权利。

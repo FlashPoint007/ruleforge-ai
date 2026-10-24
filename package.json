@@ -1,0 +1,23 @@
+{
+  "name": "ruleforge-ai",
+  "version": "0.1.0",
+  "private": true,
+  "description": "RuleForge AI - describe a rule in natural language, get a deterministic, validated playable game rule.",
+  "packageManager": "pnpm@11.22.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @ruleforge/web dev",
+    "build": "pnpm --filter @ruleforge/web build",
+    "preview": "pnpm --filter @ruleforge/web preview",
+    "test": "pnpm --filter @ruleforge/web test",
+    "test:e2e": "pnpm --filter @ruleforge/web test:e2e",
+    "typecheck": "pnpm --filter @ruleforge/web typecheck",
+    "lint": "pnpm --filter @ruleforge/web lint",
+    "check": "pnpm run typecheck && pnpm run lint && pnpm run test && pnpm run build"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0"
+  }
+}

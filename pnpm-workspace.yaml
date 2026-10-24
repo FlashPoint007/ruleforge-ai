@@ -1,0 +1,9 @@
+packages:
+  - "apps/web"
+  - "packages/*"
+
+# esbuild ships a native binary and needs its install script. Everything else
+# stays unapproved so a compromised transitive dependency cannot run code at
+# install time.
+allowBuilds:
+  esbuild: true
