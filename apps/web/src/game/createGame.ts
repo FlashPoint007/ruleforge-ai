@@ -1,5 +1,7 @@
 import Phaser from "phaser";
 
+import { ART_PALETTE } from "@/app/theme";
+
 import { BootScene } from "@/game/scenes/BootScene";
 import { GameScene } from "@/game/scenes/GameScene";
 import { UIScene } from "@/game/scenes/UIScene";
@@ -13,7 +15,7 @@ export function createGame(parent: HTMLElement): Phaser.Game {
     parent,
     width: GAME_WIDTH,
     height: GAME_HEIGHT,
-    backgroundColor: "#0b1020",
+    backgroundColor: ART_PALETTE.abyss,
     pixelArt: false,
     physics: {
       default: "arcade",

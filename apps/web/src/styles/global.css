@@ -1,15 +1,28 @@
 :root {
   color-scheme: dark;
-  --bg: #070b16;
-  --bg-elevated: #0f1629;
-  --border: #1e293b;
-  --text: #e2e8f0;
-  --text-muted: #94a3b8;
-  --text-faint: #64748b;
-  --accent: #38bdf8;
-  --accent-strong: #0ea5e9;
-  --warn: #fbbf24;
-  --ok: #34d399;
+
+  /* Measured from images/ — see docs/ART_DIRECTION.md section 2.
+     Ratio: 60% abyss : 30% ocean/white : 10% tech cyan. */
+  --abyss: #00162b;
+  --abyss-deep: #000e22;
+  --ocean: #216bab;
+  --ocean-deep: #2d6096;
+  --starlight: #79b4e6;
+  --tech-cyan: #61cdf4;
+  --pure-white: #f2f4f9;
+  --deep-violet: #6b63b2;
+  --coral: #e99ba6;
+
+  --bg: var(--abyss);
+  --bg-elevated: #062037;
+  --border: #143656;
+  --text: var(--pure-white);
+  --text-muted: #9db6d4;
+  --text-faint: #6b87a8;
+  --accent: var(--tech-cyan);
+  --accent-strong: var(--ocean);
+  --ok: #63d9b6;
+  --warn: var(--coral);
   --radius: 14px;
   font-family: "Inter", system-ui, -apple-system, "Segoe UI", "PingFang SC",
     "Microsoft YaHei", sans-serif;

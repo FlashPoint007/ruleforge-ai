@@ -1,5 +1,7 @@
 import Phaser from "phaser";
 
+import { ART_PALETTE } from "@/app/theme";
+
 import { GAME_HEIGHT, GAME_WIDTH } from "@/game/createGame";
 
 /**
@@ -15,7 +17,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.cameras.main.setBackgroundColor("#0b1020");
+    this.cameras.main.setBackgroundColor(ART_PALETTE.abyss);
 
     const ground = this.physics.add.staticImage(GAME_WIDTH / 2, GAME_HEIGHT - 30, "platform-placeholder");
     ground.setScale(6, 1).refreshBody();
@@ -27,14 +29,14 @@ export class GameScene extends Phaser.Scene {
     const hint = this.add.text(24, 24, "占位场景 · 规则引擎将在 RF-003 接入", {
       fontFamily: "system-ui, sans-serif",
       fontSize: "16px",
-      color: "#94a3b8",
+      color: ART_PALETTE.starlight,
     });
     hint.setScrollFactor(0);
 
     this.add.text(24, 52, "方向键 / A·D 移动，空格跳跃", {
       fontFamily: "system-ui, sans-serif",
       fontSize: "14px",
-      color: "#475569",
+      color: ART_PALETTE.oceanDeep,
     });
 
     this.cursors = this.input.keyboard?.createCursorKeys();
