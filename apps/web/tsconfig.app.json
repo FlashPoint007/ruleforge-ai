@@ -19,7 +19,10 @@
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": false,
     "baseUrl": ".",
-    "paths": { "@/*": ["./src/*"] },
+    "paths": {
+      "@/*": ["./src/*"],
+      "@content/*": ["../../game-content/*"]
+    },
     "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"]
   },
   "include": ["src"]

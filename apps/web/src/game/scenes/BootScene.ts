@@ -1,47 +1,68 @@
 import Phaser from "phaser";
 
-import { ART_PALETTE } from "@/app/theme";
+import { TERRAIN_SLICE } from "@/game/config";
+import { MATERIALS } from "@/game/levels/levelSchema";
+import type { Material } from "@/game/levels/levelSchema";
 
 /**
- * Generates every placeholder texture at runtime: no art assets are committed
- * yet. Colours come from ART_PALETTE so the placeholder already reads like the
- * final art direction (see docs/ART_DIRECTION.md).
+ * Loads the shipped art and prepares it for the renderer.
+ *
+ * Geometry was measured from the sheets, not guessed:
+ * - hero / enemies: 64px grid sprite sheets
+ * - terrain: one 384x96 sheet holding four 96x96 nine-slice blocks, which must
+ *   be split into separate textures because NineSlice consumes a whole texture.
  */
 export class BootScene extends Phaser.Scene {
   constructor() {
     super("BootScene");
   }
 
+  preload(): void {
+    this.load.spritesheet("hero", "assets/sprites/hero-atlas.png", {
+      frameWidth: 64,
+      frameHeight: 64,
+    });
+    this.load.spritesheet("enemies", "assets/sprites/enemies-atlas.png", {
+      frameWidth: 64,
+      frameHeight: 64,
+    });
+    this.load.image("terrain-sheet", "assets/tiles/terrain-nineslice.png");
+  }
+
   create(): void {
-    this.createSolidTexture("player-placeholder", 28, 40, ART_PALETTE.techCyan);
-    this.createSolidTexture(
-      "platform-placeholder",
-      160,
-      20,
-      ART_PALETTE.ocean,
-      ART_PALETTE.pureWhite,
-    );
+    this.sliceTerrain();
     this.scene.start("GameScene");
   }
 
-  private createSolidTexture(
-    key: string,
-    width: number,
-    height: number,
-    color: string,
-    topFace?: string,
-  ): void {
-    const graphics = this.make.graphics({ x: 0, y: 0 }, false);
-    graphics.fillStyle(Phaser.Display.Color.HexStringToColor(color).color, 1);
-    graphics.fillRoundedRect(0, 0, width, height, 6);
+  /** Splits the terrain sheet into one texture per material. */
+  private sliceTerrain(): void {
+    const sheet = this.textures.get("terrain-sheet").getSourceImage();
+    const { blockSize } = TERRAIN_SLICE;
 
-    if (topFace) {
-      // A white top face marks "you can stand here" at a glance.
-      graphics.fillStyle(Phaser.Display.Color.HexStringToColor(topFace).color, 1);
-      graphics.fillRoundedRect(0, 0, width, 3, 1);
-    }
+    MATERIALS.forEach((material: Material, index: number) => {
+      const key = `terrain-${material}`;
+      if (this.textures.exists(key)) {
+        return;
+      }
 
-    graphics.generateTexture(key, width, height);
-    graphics.destroy();
+      const canvasTexture = this.textures.createCanvas(key, blockSize, blockSize);
+      if (!canvasTexture) {
+        throw new Error(`Could not create terrain texture for ${material}`);
+      }
+
+      const context = canvasTexture.getContext();
+      context.drawImage(
+        sheet as CanvasImageSource,
+        index * blockSize,
+        0,
+        blockSize,
+        blockSize,
+        0,
+        0,
+        blockSize,
+        blockSize,
+      );
+      canvasTexture.refresh();
+    });
   }
 }

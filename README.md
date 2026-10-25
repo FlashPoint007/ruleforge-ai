@@ -3,7 +3,7 @@
 > 用一句自然语言描述一条规则，得到一个经过确定性编译、可验证、可回放的关卡玩法。
 > Describe a rule in plain language — get a deterministic, validated, replayable game rule.
 
-**当前状态：M0 工程初始化（RF-001 / RF-002 脚手架）。游戏玩法、DSL 运行时与 LLM 接入尚未实现。**
+**当前状态：M1 进行中（RF-003 可玩原型）。移动、跳跃、坠落复活已实现；DSL 运行时与 LLM 接入尚未实现。**
 本项目处于开发早期，README 只描述**已经可以运行**的东西，不描述计划中的能力。
 
 ---
@@ -18,6 +18,21 @@
 - 校验不依赖模型的 JSON mode：schema、类型、语义、冲突、关卡兼容性全部在服务端复检。
 
 完整技术方案见 [`docs/RuleForge_AI_V1.1.md`](docs/RuleForge_AI_V1.1.md)。
+
+## 现在能玩到什么
+
+```bash
+pnpm install && pnpm --filter @ruleforge/web dev
+```
+
+打开 <http://localhost:5173>，点「进入实验室」：
+
+- 方向键 / A·D 移动，空格跳跃（带土狼时间与跳跃缓冲，手感不是硬邦邦的）
+- 摄像机平滑跟随，坠落到击杀线以下自动淡出复活
+- 触屏有屏幕按键，PC 与手机都能操作
+- 关卡数据在 `game-content/levels/lab-01.json`，加载前会校验，非法关卡直接拒绝而不是猜
+
+**规则引擎还没接入**：现在跑的是固定关卡，还不能改写世界规则。
 
 ## 仓库结构
 

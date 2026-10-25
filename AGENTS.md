@@ -39,14 +39,12 @@ The player describes a rule in natural language. A server-side LLM returns contr
 
 ## Current milestone
 
-**RF-001 (Monorepo scaffold) and RF-002 (Conventions & environment) are DONE.** Verified commands:
+**RF-001, RF-002 and RF-003 are DONE.** Verified commands:
 
 ```bash
 pnpm install
 pnpm --filter @ruleforge/web dev          # http://localhost:5173
-# separate shell:
-cd apps/api && uv sync
-uv run uvicorn app.main:app --reload --port 8000
+cd apps/api && uv sync && uv run uvicorn app.main:app --reload --port 8000
 ```
 
 Quality gates that must stay green:
@@ -60,10 +58,13 @@ pnpm run test:e2e                          # Playwright (root config)
 cd apps/api && uv run pytest -q && uv run ruff check .
 ```
 
-`GET /api/v1/healthz` returns 200 and `LLM_PROVIDER=mock` works with no credentials.
+## Art assets
+
+Real sliced assets now live in `apps/web/public/assets/`. Slice geometry is
+measured, not guessed — see `docs/ART_DIRECTION.md` section 7. Do not invent
+placeholder shapes for art that has not been sliced yet; say it is missing.
 
 ## Next task
 
-**RF-003 only** (player, input, collision, camera, death/respawn). Do not start the DSL runtime,
-the compiler or the DeepSeek provider before RF-003 is accepted. Art direction for the game is
-supplied by the project owner later; keep using runtime-generated placeholder textures until then.
+**RF-004 only.** Do not start the DSL runtime, the compiler or the DeepSeek
+provider before RF-004 is accepted.

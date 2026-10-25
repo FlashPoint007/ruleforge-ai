@@ -9,11 +9,18 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
+      // game-content stays the canonical home for level data (see the spec),
+      // so the client imports it from the repo root instead of a copy.
+      "@content": fileURLToPath(new URL("../../game-content", import.meta.url)),
     },
   },
   server: {
     port: 5173,
     strictPort: true,
+    fs: {
+      // Level JSON lives outside apps/web by design.
+      allow: [fileURLToPath(new URL("../..", import.meta.url))],
+    },
   },
   build: {
     // Phaser is a ~1.5 MB engine loaded lazily behind the lab button; it is

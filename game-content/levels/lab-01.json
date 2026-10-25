@@ -1,0 +1,80 @@
+{
+  "id": "lab-01",
+  "name": "天空遗迹",
+  "version": "1.0.0",
+  "theme": "sky-ruins",
+  "world": {
+    "width": 3200,
+    "height": 720
+  },
+  "spawn": {
+    "x": 140,
+    "y": 520
+  },
+  "killPlaneY": 900,
+  "platforms": [
+    {
+      "x": 0,
+      "y": 600,
+      "width": 560,
+      "height": 120,
+      "material": "moss"
+    },
+    {
+      "x": 740,
+      "y": 600,
+      "width": 420,
+      "height": 120,
+      "material": "moss"
+    },
+    {
+      "x": 1240,
+      "y": 560,
+      "width": 260,
+      "height": 160,
+      "material": "stone"
+    },
+    {
+      "x": 640,
+      "y": 460,
+      "width": 120,
+      "height": 40,
+      "material": "stone"
+    },
+    {
+      "x": 900,
+      "y": 400,
+      "width": 140,
+      "height": 40,
+      "material": "stone"
+    },
+    {
+      "x": 1180,
+      "y": 340,
+      "width": 120,
+      "height": 40,
+      "material": "stone"
+    },
+    {
+      "x": 1560,
+      "y": 600,
+      "width": 520,
+      "height": 120,
+      "material": "moss"
+    },
+    {
+      "x": 2180,
+      "y": 480,
+      "width": 160,
+      "height": 40,
+      "material": "stone"
+    },
+    {
+      "x": 2400,
+      "y": 600,
+      "width": 800,
+      "height": 120,
+      "material": "moss"
+    }
+  ]
+}

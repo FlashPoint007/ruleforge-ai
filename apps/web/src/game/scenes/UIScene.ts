@@ -1,8 +1,9 @@
 import Phaser from "phaser";
 
+import { ART_PALETTE } from "@/app/theme";
 import { DSL_VERSION } from "@ruleforge/rule-schema";
 
-/** Minimal HUD. Kept separate so gameplay and chrome never share a scene. */
+/** HUD chrome. Kept in its own scene so gameplay and UI never share a draw loop. */
 export class UIScene extends Phaser.Scene {
   constructor() {
     super("UIScene");
@@ -10,11 +11,27 @@ export class UIScene extends Phaser.Scene {
 
   create(): void {
     this.add
-      .text(24, 500, `DSL v${DSL_VERSION} · mock 模式 · 无模型调用`, {
+      .text(20, 20, "天空遗迹 · lab-01", {
         fontFamily: "system-ui, sans-serif",
-        fontSize: "12px",
-        color: "#64748b",
+        fontSize: "13px",
+        color: ART_PALETTE.pureWhite,
       })
-      .setScrollFactor(0);
+      .setAlpha(0.75);
+
+    this.add
+      .text(20, 40, `DSL v${DSL_VERSION} · mock 模式 · 规则引擎在下一阶段接入`, {
+        fontFamily: "system-ui, sans-serif",
+        fontSize: "11px",
+        color: ART_PALETTE.starlight,
+      })
+      .setAlpha(0.6);
+
+    this.add
+      .text(20, 516, "← → / A D 移动 · 空格跳跃", {
+        fontFamily: "system-ui, sans-serif",
+        fontSize: "11px",
+        color: ART_PALETTE.starlight,
+      })
+      .setAlpha(0.55);
   }
 }

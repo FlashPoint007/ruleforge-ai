@@ -1,68 +1,109 @@
 import Phaser from "phaser";
 
-import { ART_PALETTE } from "@/app/theme";
+import { CAMERA, GAME_HEIGHT, PHYSICS, RESPAWN } from "@/game/config";
+import { Player } from "@/game/entities/Player";
+import { parseLevel } from "@/game/levels/levelSchema";
+import type { LevelDef } from "@/game/levels/levelSchema";
+import { InputSystem } from "@/game/systems/InputSystem";
+import { resetTouch } from "@/game/systems/inputBus";
+import { createBackdrop } from "@/game/world/backdrop";
+import { addPlatform } from "@/game/world/terrain";
 
-import { GAME_HEIGHT, GAME_WIDTH } from "@/game/createGame";
+import levelData from "@content/levels/lab-01.json";
 
 /**
- * Placeholder arena. No network calls are allowed inside Phaser scenes: rule
- * data reaches the runtime through the app layer, never from a scene.
+ * The playable arena.
+ *
+ * Scenes never call the network. Level data arrives as validated JSON, and every
+ * path that can kill or move the player funnels through respawn().
  */
 export class GameScene extends Phaser.Scene {
-  private player?: Phaser.Physics.Arcade.Image;
-  private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
+  private level!: LevelDef;
+  private player!: Player;
+  private inputSystem!: InputSystem;
+  private platformBodies: Phaser.GameObjects.Rectangle[] = [];
+  private checkpoint = { x: 0, y: 0 };
+  private isRespawning = false;
 
   constructor() {
     super("GameScene");
   }
 
   create(): void {
-    this.cameras.main.setBackgroundColor(ART_PALETTE.abyss);
+    this.level = parseLevel(levelData);
+    this.checkpoint = { ...this.level.spawn };
 
-    const ground = this.physics.add.staticImage(GAME_WIDTH / 2, GAME_HEIGHT - 30, "platform-placeholder");
-    ground.setScale(6, 1).refreshBody();
+    this.physics.world.setBounds(0, 0, this.level.world.width, this.level.world.height);
+    this.physics.world.gravity.y = PHYSICS.gravityY;
 
-    this.player = this.physics.add.image(GAME_WIDTH / 2, GAME_HEIGHT - 140, "player-placeholder");
-    this.player.setCollideWorldBounds(true);
-    this.physics.add.collider(this.player, ground);
+    createBackdrop(this);
+    this.buildPlatforms();
 
-    const hint = this.add.text(24, 24, "占位场景 · 规则引擎将在 RF-003 接入", {
-      fontFamily: "system-ui, sans-serif",
-      fontSize: "16px",
-      color: ART_PALETTE.starlight,
-    });
-    hint.setScrollFactor(0);
+    this.player = new Player(this, this.checkpoint.x, this.checkpoint.y);
+    this.physics.add.collider(this.player.sprite, this.platformBodies);
 
-    this.add.text(24, 52, "方向键 / A·D 移动，空格跳跃", {
-      fontFamily: "system-ui, sans-serif",
-      fontSize: "14px",
-      color: ART_PALETTE.oceanDeep,
-    });
+    this.inputSystem = new InputSystem(this);
+    this.configureCamera();
 
-    this.cursors = this.input.keyboard?.createCursorKeys();
+    this.cameras.main.fadeIn(RESPAWN.fadeMs, 0, 0, 0);
     this.scene.launch("UIScene");
+
+    this.events.on(Phaser.Scenes.Events.PAUSE, () => this.inputSystem.reset());
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.inputSystem.destroy());
   }
 
-  update(): void {
-    if (!this.player || !this.cursors) {
+  private buildPlatforms(): void {
+    this.platformBodies = this.level.platforms.map((def) => addPlatform(this, def).body);
+  }
+
+  private configureCamera(): void {
+    const camera = this.cameras.main;
+    camera.setBounds(0, 0, this.level.world.width, this.level.world.height);
+    camera.setDeadzone(CAMERA.deadzoneWidth, CAMERA.deadzoneHeight);
+    camera.startFollow(this.player.sprite, true, CAMERA.lerpX, CAMERA.lerpY, 0, CAMERA.offsetY);
+  }
+
+  update(time: number): void {
+    if (this.isRespawning) {
       return;
     }
 
-    const speed = 240;
-    const left = this.cursors.left.isDown || this.input.keyboard?.addKey("A").isDown;
-    const right = this.cursors.right.isDown || this.input.keyboard?.addKey("D").isDown;
+    this.player.update(time, this.inputSystem.read());
 
-    if (left) {
-      this.player.setVelocityX(-speed);
-    } else if (right) {
-      this.player.setVelocityX(speed);
-    } else {
-      this.player.setVelocityX(0);
+    if (this.player.sprite.y > this.level.killPlaneY) {
+      this.respawn(true);
+    }
+  }
+
+  /** Single entry point for death: nothing else may move the player. */
+  private respawn(fromDeath: boolean): void {
+    if (this.isRespawning) {
+      return;
+    }
+    this.isRespawning = true;
+
+    this.player.setFrozen(true);
+    if (fromDeath) {
+      this.player.playDeath();
+      this.cameras.main.shake(180, 0.006);
     }
 
-    const body = this.player.body as Phaser.Physics.Arcade.Body;
-    if (this.cursors.up.isDown && body.blocked.down) {
-      this.player.setVelocityY(-520);
-    }
+    this.time.delayedCall(fromDeath ? RESPAWN.deathHoldMs : 0, () => {
+      this.cameras.main.fadeOut(RESPAWN.fadeMs, 0, 0, 0);
+      this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+        this.placeAtCheckpoint();
+        this.cameras.main.fadeIn(RESPAWN.fadeMs, 0, 0, 0);
+        this.isRespawning = false;
+      });
+    });
+  }
+
+  private placeAtCheckpoint(): void {
+    this.player.sprite.setPosition(this.checkpoint.x, this.checkpoint.y);
+    this.player.sprite.setVelocity(0, 0);
+    this.player.setFrozen(false);
+    this.inputSystem.reset();
+    resetTouch();
+    this.cameras.main.centerOn(this.checkpoint.x, this.checkpoint.y - GAME_HEIGHT / 4);
   }
 }
