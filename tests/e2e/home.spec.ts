@@ -122,7 +122,7 @@ test("enabling the gravity rule actually flips gravity", async ({ page }) => {
   expect(before?.gravityDirection).toBe(1);
   expect(before?.worldGravityY).toBeGreaterThan(0);
 
-  await page.getByRole("button", { name: /重力反转/ }).click();
+  await page.locator('[data-rule-id="preset-gravity-flip"]').click();
   await expect(page.getByTestId("rule-status")).toContainText("规则运行中");
 
   // Hold the key across several frames: a single press can fall between ticks.
@@ -150,10 +150,20 @@ test("flipped gravity cannot launch the player out of the level", async ({ page 
   await expect(canvas).toBeVisible({ timeout: 20_000 });
   await canvas.click();
 
-  await page.getByRole("button", { name: /重力反转/ }).click();
+  await page.locator('[data-rule-id="preset-gravity-flip"]').click();
   await page.keyboard.down("Space");
-  await page.waitForTimeout(150);
+  await page.waitForTimeout(250);
   await page.keyboard.up("Space");
+
+  // Wait for the flip to actually happen instead of guessing a duration.
+  await page.waitForFunction(
+    () => {
+      const hook = (window as unknown as { __ruleforge?: { readDebugState: () => { gravityDirection: number } } }).__ruleforge;
+      return hook?.readDebugState?.().gravityDirection === -1;
+    },
+    undefined,
+    { timeout: 10_000 },
+  );
 
   // Long enough to hit the ceiling and settle against it.
   await page.waitForTimeout(2500);
@@ -183,7 +193,7 @@ test("disabling the rule restores normal gravity", async ({ page }) => {
       return hook ? hook.readDebugState() : null;
     });
 
-  const ruleCard = page.getByRole("button", { name: /重力反转/ });
+  const ruleCard = page.locator('[data-rule-id="preset-gravity-flip"]');
   await ruleCard.click();
   await page.keyboard.down("Space");
   await page.waitForTimeout(150);
@@ -237,7 +247,7 @@ test("the enemy slow rule fires when a coin is collected", async ({ page }) => {
   await canvas.click();
   await waitForScene(page);
 
-  await page.getByRole("button", { name: /拾金减速/ }).click();
+  await page.locator('[data-rule-id="preset-enemy-slow"]').click();
   await expect(page.getByTestId("rule-status")).toContainText("规则运行中");
 
   await page.keyboard.down("ArrowRight");
@@ -269,4 +279,61 @@ test("the level spawns enemies and they stay in the world", async ({ page }) => 
   })) as { liveEnemies: number } | null;
 
   expect(state?.liveEnemies ?? 0).toBe(5);
+});
+
+test("a rule condition blocks the action until it is satisfied", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "进入实验室" }).click();
+  const canvas = page.getByTestId("game-canvas").locator("canvas").first();
+  await expect(canvas).toBeVisible({ timeout: 20_000 });
+  await canvas.click();
+  await waitForScene(page);
+
+  const readState = () =>
+    page.evaluate(() => {
+      const hook = (window as unknown as { __ruleforge?: { readDebugState: () => unknown } }).__ruleforge;
+      return hook ? hook.readDebugState() : null;
+    });
+
+  type State = {
+    gravityDirection: number;
+    actionsApplied: number;
+    conditionsBlocked: number;
+    coinsCollected: number;
+    onGround: boolean;
+  };
+
+  await page.locator('[data-rule-id="preset-guarded-gravity"]').click();
+  await expect(page.getByTestId("rule-status")).toContainText("规则运行中");
+
+  // No coins yet: the guard must block the flip.
+  await page.keyboard.down("Space");
+  await page.waitForTimeout(200);
+  await page.keyboard.up("Space");
+  await page.waitForTimeout(600);
+
+  const blocked = (await readState()) as State;
+  expect(blocked.gravityDirection).toBe(1);
+  expect(blocked.actionsApplied).toBe(0);
+  expect(blocked.conditionsBlocked).toBeGreaterThan(0);
+
+  // Collect two coins without leaving solid ground.
+  await page.keyboard.down("ArrowRight");
+  await page.waitForTimeout(1250);
+  await page.keyboard.up("ArrowRight");
+  await page.waitForTimeout(500);
+
+  const stocked = (await readState()) as State;
+  expect(stocked.coinsCollected).toBeGreaterThanOrEqual(2);
+  expect(stocked.onGround).toBe(true);
+
+  // Same rule, same jump, condition now satisfied.
+  await page.keyboard.down("Space");
+  await page.waitForTimeout(220);
+  await page.keyboard.up("Space");
+  await page.waitForTimeout(700);
+
+  const fired = (await readState()) as State;
+  expect(fired.actionsApplied).toBeGreaterThan(0);
+  expect(fired.gravityDirection).toBe(-1);
 });

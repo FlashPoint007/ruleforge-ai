@@ -1,5 +1,7 @@
-import type { P0ActionOp, RuleAction } from "@ruleforge/rule-schema";
+import type { ConditionNode, P0ActionOp, RuleAction } from "@ruleforge/rule-schema";
 
+import { ConditionError, evaluateConditions } from "@/game/rules/conditions";
+import type { FactValue } from "@/game/rules/conditions";
 import { RulePackError, parseExecutablePack } from "@/game/rules/rulePack";
 import type {
   ActiveEffect,
@@ -27,7 +29,12 @@ export class RuleRuntime {
   private context: EffectContext;
   private queue: RuntimeEvent[] = [];
   private active: ActiveEffect[] = [];
-  private rules: Array<{ id: string; event: string; actions: RuleAction[] }> = [];
+  private rules: Array<{
+    id: string;
+    event: string;
+    conditions: ConditionNode[];
+    actions: RuleAction[];
+  }> = [];
   private packId: string | null = null;
 
   readonly stats: RuleRuntimeStats = {
@@ -35,6 +42,7 @@ export class RuleRuntime {
     eventsDropped: 0,
     actionsApplied: 0,
     actionsRejected: 0,
+    conditionsBlocked: 0,
   };
 
   constructor(context: EffectContext) {
@@ -47,9 +55,19 @@ export class RuleRuntime {
     this.reset();
 
     this.packId = parsed.id;
-    this.rules = (parsed.rules as Array<{ id: string; trigger: { event: string }; actions: RuleAction[] }>).map(
-      (rule) => ({ id: rule.id, event: rule.trigger.event, actions: rule.actions }),
-    );
+    this.rules = (
+      parsed.rules as Array<{
+        id: string;
+        trigger: { event: string };
+        conditions?: ConditionNode[];
+        actions: RuleAction[];
+      }>
+    ).map((rule) => ({
+      id: rule.id,
+      event: rule.trigger.event,
+      conditions: rule.conditions ?? [],
+      actions: rule.actions,
+    }));
   }
 
   unload(): void {
@@ -67,12 +85,12 @@ export class RuleRuntime {
   }
 
   /** Queues an event. Never executes immediately: ordering stays deterministic. */
-  emit(name: RuntimeEventName, atMs: number): void {
+  emit(name: RuntimeEventName, atMs: number, facts?: Record<string, FactValue>): void {
     if (this.queue.length >= MAX_QUEUE_PER_TICK) {
       this.stats.eventsDropped += 1;
       return;
     }
-    this.queue.push({ name, atMs });
+    this.queue.push(facts === undefined ? { name, atMs } : { name, atMs, facts });
   }
 
   /**
@@ -97,10 +115,81 @@ export class RuleRuntime {
       if (rule.event !== event.name) {
         continue;
       }
+
+      if (!this.passesConditions(rule.conditions, event)) {
+        this.stats.conditionsBlocked += 1;
+        continue;
+      }
+
       for (const action of rule.actions) {
         this.apply(rule.id, action, event.atMs);
       }
     }
+  }
+
+  /**
+   * Evaluates a rule's conditions against the current world.
+   *
+   * A condition that cannot be evaluated (unknown fact, bad operand type) is
+   * treated as blocking: the rule does not fire. Firing a rule whose guard could
+   * not be checked would apply an effect the player never asked for.
+   */
+  private passesConditions(conditions: ConditionNode[], event: RuntimeEvent): boolean {
+    if (conditions.length === 0) {
+      return true;
+    }
+
+    const values: Record<string, FactValue | undefined> = {};
+
+    try {
+      for (const rule of conditions) {
+        this.collectFacts(rule, values, event);
+      }
+      return evaluateConditions(conditions, { values, eventName: event.name });
+    } catch (error) {
+      if (error instanceof ConditionError) {
+        return false;
+      }
+      throw error;
+    }
+  }
+
+  /** Walks a condition tree and resolves every fact path it mentions. */
+  private collectFacts(
+    node: ConditionNode,
+    into: Record<string, FactValue | undefined>,
+    event: RuntimeEvent,
+  ): void {
+    const atomic = node as { op?: unknown; fact?: unknown; all?: ConditionNode[]; any?: ConditionNode[] };
+
+    if (typeof atomic.op === "string" && typeof atomic.fact === "string") {
+      into[atomic.fact] = this.resolveFact(atomic.fact, event);
+      return;
+    }
+
+    for (const child of atomic.all ?? atomic.any ?? []) {
+      this.collectFacts(child, into, event);
+    }
+  }
+
+  /**
+   * Resolves one DSL fact path.
+   *
+   * Event-scoped facts are only legal while their own event is being handled:
+   * reading event.zoneId during coin.collected is a pack bug, and it must fail
+   * rather than quietly read another event's data.
+   */
+  private resolveFact(path: string, event: RuntimeEvent): FactValue | undefined {
+    if (path.startsWith("event.")) {
+      const key = path.slice("event.".length);
+      const scoped = event.facts?.[key];
+      if (scoped === undefined) {
+        throw new ConditionError(`event fact "${path}" is not available during ${event.name}`);
+      }
+      return scoped;
+    }
+
+    return this.context.readFact(path);
   }
 
   private apply(ruleId: string, action: RuleAction, atMs: number): void {
@@ -266,7 +355,11 @@ export class RuleRuntime {
 
   /** Debug surface for the HUD. */
   describe(): string[] {
-    return this.rules.map((rule) => `${rule.event} → ${rule.actions.map((a) => a.op).join(", ")}`);
+    return this.rules.map((rule) => {
+      const guard =
+        rule.conditions.length > 0 ? ` 当 [${rule.conditions.length} 个条件] ` : " ";
+      return `${rule.event}${guard}→ ${rule.actions.map((a) => a.op).join(", ")}`;
+    });
   }
 }
 

@@ -1,5 +1,7 @@
 import { DSL_VERSION, RULE_LIMITS, validateRulePackShape } from "@ruleforge/rule-schema";
-import type { P0ActionOp, RuleAction } from "@ruleforge/rule-schema";
+import type { ConditionNode, P0ActionOp, RuleAction } from "@ruleforge/rule-schema";
+
+import { countConditionNodes } from "@/game/rules/conditions";
 
 import type { RuntimeEventName } from "@/game/rules/types";
 
@@ -57,7 +59,15 @@ export function parseExecutablePack(raw: unknown): { id: string; rules: unknown[
     fail(shape.errors.join("; "));
   }
 
-  const pack = raw as { id?: string; rules: Array<{ id: string; trigger: { event: string }; actions: RuleAction[] }> };
+  const pack = raw as {
+    id?: string;
+    rules: Array<{
+      id: string;
+      trigger: { event: string };
+      conditions?: ConditionNode[];
+      actions: RuleAction[];
+    }>;
+  };
   const label = typeof pack.id === "string" && pack.id.length > 0 ? pack.id : "rule-pack";
 
   if (!Array.isArray(pack.rules) || pack.rules.length === 0) {
@@ -70,6 +80,18 @@ export function parseExecutablePack(raw: unknown): { id: string; rules: unknown[
   for (const rule of pack.rules) {
     if (!RUNTIME_EVENTS.has(rule.trigger.event)) {
       fail(`rule "${rule.id}" listens to unsupported event "${rule.trigger.event}"`);
+    }
+
+    if (rule.conditions !== undefined) {
+      if (!Array.isArray(rule.conditions)) {
+        fail(`rule "${rule.id}" conditions must be an array`);
+      }
+      const nodeCount = countConditionNodes(rule.conditions);
+      if (nodeCount > RULE_LIMITS.maxConditionsPerRule) {
+        fail(
+          `rule "${rule.id}" conditions has ${nodeCount} nodes, limit is ${RULE_LIMITS.maxConditionsPerRule}`,
+        );
+      }
     }
 
     for (const action of rule.actions) {

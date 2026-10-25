@@ -61,6 +61,8 @@ export interface DebugState {
   enemiesDefeated: number;
   liveEnemies: number;
   activeRules: string[];
+  lives: number;
+  conditionsBlocked: number;
 }
 
 export function readDebugState(): DebugState | null {

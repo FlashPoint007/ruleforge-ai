@@ -122,6 +122,23 @@ export interface ValidationResult {
 const EVENT_SET: ReadonlySet<string> = new Set(P0_EVENTS);
 const ACTION_SET: ReadonlySet<string> = new Set(P0_ACTIONS);
 
+function countNodes(nodes: readonly unknown[]): number {
+  let total = 0;
+  for (const node of nodes) {
+    total += 1;
+    if (isRecord(node)) {
+      const all = node["all"];
+      const any = node["any"];
+      if (Array.isArray(all)) {
+        total += countNodes(all);
+      } else if (Array.isArray(any)) {
+        total += countNodes(any);
+      }
+    }
+  }
+  return total;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -149,10 +166,15 @@ function validateRule(rule: unknown, index: number, errors: string[]): void {
   if (conditions !== undefined) {
     if (!Array.isArray(conditions)) {
       errors.push(`${label}.conditions must be an array`);
-    } else if (conditions.length > RULE_LIMITS.maxConditionsPerRule) {
-      errors.push(
-        `${label}.conditions has ${conditions.length} nodes, limit is ${RULE_LIMITS.maxConditionsPerRule}`,
-      );
+    } else {
+      // Count every node, not just top-level entries: two groups of two
+      // children is four conditions, not two.
+      const nodeCount = countNodes(conditions);
+      if (nodeCount > RULE_LIMITS.maxConditionsPerRule) {
+        errors.push(
+          `${label}.conditions has ${nodeCount} nodes, limit is ${RULE_LIMITS.maxConditionsPerRule}`,
+        );
+      }
     }
   }
 

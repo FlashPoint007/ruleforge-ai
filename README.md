@@ -3,7 +3,7 @@
 > 用一句自然语言描述一条规则，得到一个经过确定性编译、可验证、可回放的关卡玩法。
 > Describe a rule in plain language — get a deterministic, validated, replayable game rule.
 
-**当前状态：M1 完成（RF-004）。可玩关卡 + 敌人 / 金币 / 可坍塌平台 + 规则引擎闭环；LLM 生成与编译器尚未实现。**
+**当前状态：M2 进行中（RF-005）。可玩关卡 + 带条件的规则引擎；LLM 生成与编译器尚未实现。**
 本项目处于开发早期，README 只描述**已经可以运行**的东西，不描述计划中的能力。
 
 ---
@@ -56,6 +56,29 @@ pnpm install && pnpm --filter @ruleforge/web dev
 
 其余 6 个动作**已注册但未实现**：规则包若引用它们会被**直接拒绝并显示原因**，
 而不是静默忽略 —— 让玩家以为规则生效了才是真正的 bug。
+
+### 规则条件（RF-005）
+
+规则不再只能无条件触发。`conditions` 现在会被真正求值：
+
+```json
+{
+  "trigger": { "event": "player.jumpCommitted" },
+  "conditions": [{ "op": "gte", "fact": "player.coinCount", "value": 2 }],
+  "actions": [{ "op": "player.gravity.toggle", "target": "player", "params": { "magnitude": 980 } }]
+}
+```
+
+支持 `all` / `any` 组合（嵌套深度 ≤ 2）与 `eq neq gt gte lt lte modEq` 七种比较。
+事实路径限定在规范白名单内：`player.hp`、`player.alive`、`player.grounded`、
+`player.gravityDirection`、`player.coinCount`、`level.elapsedMs` 等。
+
+两条安全规则：
+
+1. **事件作用域事实只能在该事件中读取**。在 `coin.collected` 里读 `event.zoneId` 会被拒绝，
+   而不是返回 `undefined`。
+2. **无法求值即拦截**。未知事实、类型不匹配的运算符都会让规则**不执行**并计数，
+   绝不静默当成 `false` —— 那等于悄悄关掉玩家写的规则。
 
 引擎约束：
 - 时间用模拟时钟，不用 `Date.now()`，可复现

@@ -1,5 +1,7 @@
 import type { P0ActionOp, RulePack } from "@ruleforge/rule-schema";
 
+import type { FactValue } from "@/game/rules/conditions";
+
 /** Events the runtime can dispatch. A closed set: nothing else may be emitted. */
 export type RuntimeEventName =
   | "level.start"
@@ -15,6 +17,11 @@ export interface RuntimeEvent {
   name: RuntimeEventName;
   /** Simulated time of the dispatch, in ms. Never wall-clock. */
   atMs: number;
+  /**
+   * Event-scoped facts, only legal while this event is handled.
+   * e.g. { zoneId: "coin-7" } for player.enterZone.
+   */
+  facts?: Record<string, FactValue>;
 }
 
 export interface EffectContext {
@@ -37,6 +44,13 @@ export interface EffectContext {
     setSpeedMultiplier: (multiplier: number) => void;
     reverse: () => void;
   }>;
+  /**
+   * Reads a world fact by DSL path, e.g. "player.hp".
+   *
+   * Returns undefined for a path this world does not have. The evaluator turns
+   * that into a loud ConditionError rather than a silent false.
+   */
+  readFact: (path: string) => FactValue | undefined;
   /** Every uncollected coin, so rules can act on the whole set. */
   getCoins: () => ReadonlyArray<{
     x: number;
@@ -59,6 +73,8 @@ export interface RuleRuntimeStats {
   eventsDropped: number;
   actionsApplied: number;
   actionsRejected: number;
+  /** Events that matched a rule but failed its conditions. */
+  conditionsBlocked: number;
 }
 
 /** Broadcast whenever the scene's rule state changes. */

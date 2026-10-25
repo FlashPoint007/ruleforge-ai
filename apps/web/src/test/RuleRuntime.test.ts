@@ -36,6 +36,14 @@ function makeContext() {
   let jump = 1;
   const enemies = [makeEnemy(), makeEnemy()];
   const coins = [makeCoin(120, 100), makeCoin(160, 140)];
+  const facts: Record<string, number | boolean | string> = {
+    "player.hp": 3,
+    "player.alive": true,
+    "player.grounded": true,
+    "player.gravityDirection": 1,
+    "player.coinCount": 0,
+    "level.elapsedMs": 0,
+  };
 
   const context: EffectContext = {
     getGravityDirection: () => gravity,
@@ -51,12 +59,14 @@ function makeContext() {
     getPlayerPosition: () => ({ x: 100, y: 100 }),
     getEnemies: () => enemies,
     getCoins: () => coins,
+    readFact: (path) => facts[path],
   };
 
   return {
     context,
     enemies,
     coins,
+    facts,
     read: () => ({ gravity, speed, jump }),
   };
 }
@@ -189,6 +199,7 @@ describe("RuleRuntime", () => {
       getPlayerPosition: () => ({ x: 0, y: 0 }),
       getEnemies: () => [],
       getCoins: () => [],
+      readFact: () => undefined,
     });
 
     localRuntime.load({
@@ -316,6 +327,117 @@ describe("RuleRuntime enemy and coin actions", () => {
   });
 });
 
+describe("RuleRuntime conditions", () => {
+  const guardedPack = {
+    ...gravityPack,
+    rules: [
+      {
+        id: "rule-guarded",
+        trigger: { event: "player.jumpCommitted" },
+        conditions: [{ op: "gte" as const, fact: "player.coinCount" as const, value: 2 }],
+        actions: [{ op: "player.gravity.toggle" as const, target: "player", params: { magnitude: 980 } }],
+      },
+    ],
+  };
+
+  it("blocks the action while the condition is false", () => {
+    const harness = makeContext();
+    const runtime = new RuleRuntime(harness.context);
+    runtime.load(guardedPack);
+
+    harness.facts["player.coinCount"] = 1;
+
+    runtime.emit("player.jumpCommitted", 0);
+    runtime.tick(16);
+
+    expect(harness.read().gravity).toBe(1);
+    expect(runtime.stats.actionsApplied).toBe(0);
+    expect(runtime.stats.conditionsBlocked).toBe(1);
+  });
+
+  it("lets the action through once the condition is satisfied", () => {
+    const harness = makeContext();
+    const runtime = new RuleRuntime(harness.context);
+    runtime.load(guardedPack);
+
+    harness.facts["player.coinCount"] = 3;
+
+    runtime.emit("player.jumpCommitted", 0);
+    runtime.tick(16);
+
+    expect(harness.read().gravity).toBe(-1);
+    expect(runtime.stats.actionsApplied).toBe(1);
+    expect(runtime.stats.conditionsBlocked).toBe(0);
+  });
+
+  it("reads event-scoped facts during their own event", () => {
+    const harness = makeContext();
+    const runtime = new RuleRuntime(harness.context);
+    runtime.load({
+      ...gravityPack,
+      rules: [
+        {
+          id: "rule-zone",
+          trigger: { event: "player.enterZone" },
+          conditions: [{ op: "eq" as const, fact: "event.zoneId" as const, value: "coin-7" }],
+          actions: [{ op: "player.gravity.toggle" as const, target: "player", params: { magnitude: 980 } }],
+        },
+      ],
+    });
+
+    runtime.emit("player.enterZone", 0, { zoneId: "coin-7" });
+    runtime.tick(16);
+
+    expect(harness.read().gravity).toBe(-1);
+  });
+
+  it("blocks when an event fact is missing rather than guessing", () => {
+    const harness = makeContext();
+    const runtime = new RuleRuntime(harness.context);
+    runtime.load({
+      ...gravityPack,
+      rules: [
+        {
+          id: "rule-zone",
+          trigger: { event: "player.enterZone" },
+          conditions: [{ op: "eq" as const, fact: "event.zoneId" as const, value: "coin-7" }],
+          actions: [{ op: "player.gravity.toggle" as const, target: "player", params: { magnitude: 980 } }],
+        },
+      ],
+    });
+
+    runtime.emit("player.enterZone", 0);
+    runtime.tick(16);
+
+    expect(harness.read().gravity).toBe(1);
+    expect(runtime.stats.conditionsBlocked).toBe(1);
+  });
+
+  it("blocks when the world cannot answer a fact", () => {
+    const harness = makeContext();
+    const runtime = new RuleRuntime(harness.context);
+    runtime.load({
+      ...gravityPack,
+      rules: [
+        {
+          id: "rule-unknown-fact",
+          trigger: { event: "player.jumpCommitted" },
+          conditions: [{ op: "eq" as const, fact: "player.hp" as const, value: 1 }],
+          actions: [{ op: "player.gravity.toggle" as const, target: "player", params: { magnitude: 980 } }],
+        },
+      ],
+    });
+
+    delete harness.facts["player.hp"];
+
+    runtime.emit("player.jumpCommitted", 0);
+    runtime.tick(16);
+
+    expect(harness.read().gravity).toBe(1);
+    expect(runtime.stats.conditionsBlocked).toBe(1);
+  });
+});
+
 describe("parseExecutablePack", () => {
   it("accepts the shipped gravity preset", () => {
     expect(() => parseExecutablePack(gravityPack)).not.toThrow();
@@ -369,6 +491,27 @@ describe("parseExecutablePack", () => {
         ],
       }),
     ).toThrow(RulePackError);
+  });
+
+  it("rejects a rule with too many condition nodes", () => {
+    expect(() =>
+      parseExecutablePack({
+        ...gravityPack,
+        rules: [
+          {
+            id: "rule-many-conditions",
+            trigger: { event: "player.jumpCommitted" },
+            conditions: [
+              { op: "eq", fact: "player.hp", value: 1 },
+              { op: "eq", fact: "player.hp", value: 2 },
+              { op: "eq", fact: "player.hp", value: 3 },
+              { op: "eq", fact: "player.hp", value: 4 },
+            ],
+            actions: [{ op: "player.gravity.toggle", target: "player", params: { magnitude: 900 } }],
+          },
+        ],
+      }),
+    ).toThrow(/conditions has 4 nodes/);
   });
 
   it("rejects a pack with more than three rules", () => {

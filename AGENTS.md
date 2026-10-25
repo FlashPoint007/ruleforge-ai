@@ -39,29 +39,30 @@ The player describes a rule in natural language. A server-side LLM returns contr
 
 ## Current milestone
 
-**RF-001 / RF-002 / RF-003 / RF-004 done**, plus the minimal rule-engine loop.
+**RF-001 … RF-005 done.** Playable level, rule engine with condition evaluation.
 
-Level content: 5 enemy kinds, 10 coins, crumbling platforms, stomp-to-defeat.
+Rules are no longer trigger-only: `conditions` are evaluated with `all`/`any`
+groups, seven comparison operators, depth <= 2, and the DSL fact whitelist.
 
-Implemented actions: `player.gravity.toggle`, `player.speed.multiply`,
-`player.jump.scale`, `enemy.speed.multiply`, `enemy.direction.reverse`,
-`coin.flee`. The other six are declared but **rejected at load time** with a
-visible reason. Never silently ignore an action the player enabled.
+Non-negotiable rules for this layer:
+- Event-scoped facts (`event.*`) are only readable while their own event is being
+  handled. Reading another event's fact must fail, not return undefined.
+- A condition that cannot be evaluated **blocks** the rule and increments
+  `conditionsBlocked`. Never treat an unknown fact as `false` — that silently
+  disables a rule the player wrote.
 
 Quality gates that must stay green:
 
 ```bash
 pnpm --filter @ruleforge/web typecheck && pnpm --filter @ruleforge/web lint
-pnpm --filter @ruleforge/web test          # Vitest, includes the rule engine
+pnpm --filter @ruleforge/web test          # Vitest: engine, conditions, schema
 pnpm --filter @ruleforge/web build
 pnpm run test:e2e                          # Playwright, asserts real physics state
 cd apps/api && uv run pytest -q && uv run ruff check .
 ```
 
-Playwright runs with a capped worker count on purpose: each worker boots a real
-WebGL canvas, and running ten in parallel starves the CPU until teardown times out.
-
 ## Next task
 
-**RF-005**: rule conditions (`conditions` is parsed but never evaluated today, so a
-rule is trigger-only), then the remaining registered actions.
+**RF-006**: the remaining six registered actions (`enemy.spawn`, `coin.spawn`,
+`platform.visibility.set`, `platform.collapseAfter`, `player.shield.grant`,
+`checkpoint.activate`), then the server-side compiler.

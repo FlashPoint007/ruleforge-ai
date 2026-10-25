@@ -4,6 +4,7 @@ import { ART_PALETTE } from "@/app/theme";
 import { DSL_VERSION } from "@ruleforge/rule-schema";
 
 export interface HudState {
+  lives: number;
   coins: number;
   totalCoins: number;
   defeated: number;
@@ -70,7 +71,9 @@ export class UIScene extends Phaser.Scene {
 
     const onHud = (event: Event): void => {
       const state = (event as CustomEvent<HudState>).detail;
-      this.coinText?.setText(`金币 ${state.coins} / ${state.totalCoins}  击败 ${state.defeated}`);
+      this.coinText?.setText(
+        `♥ ${state.lives}   金币 ${state.coins} / ${state.totalCoins}   击败 ${state.defeated}`,
+      );
       this.rulesText?.setText(state.rules.length > 0 ? `规则：${state.rules.join(" · ")}` : "规则：无");
     };
 

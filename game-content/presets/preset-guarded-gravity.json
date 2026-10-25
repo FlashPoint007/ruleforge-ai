@@ -1,0 +1,31 @@
+{
+  "id": "preset-guarded-gravity",
+  "name": "集币后反转",
+  "description": "收集 2 枚金币后，每跳一次重力反转。演示条件求值：条件不满足时规则不会生效。",
+  "dslVersion": "1.1.0",
+  "levelId": "lab-01",
+  "rules": [
+    {
+      "id": "rule-guarded-gravity",
+      "trigger": {
+        "event": "player.jumpCommitted"
+      },
+      "conditions": [
+        {
+          "op": "gte",
+          "fact": "player.coinCount",
+          "value": 2
+        }
+      ],
+      "actions": [
+        {
+          "op": "player.gravity.toggle",
+          "target": "player",
+          "params": {
+            "magnitude": 980
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -44,6 +44,8 @@ export class GameScene extends Phaser.Scene {
   private enemiesDefeated = 0;
   private hasReachedGoal = false;
   private wasInZone = false;
+  /** Lives are part of the DSL fact surface (player.hp), so they are real state. */
+  private lives = 3;
 
   constructor() {
     super("GameScene");
@@ -72,6 +74,7 @@ export class GameScene extends Phaser.Scene {
       }),
       getEnemies: () => this.enemies.filter((enemy) => enemy.isAlive),
       getCoins: () => this.coins.filter((coin) => !coin.isCollected),
+      readFact: (path) => this.readWorldFact(path),
     });
 
     this.player = new Player(this, this.checkpoint.x, this.checkpoint.y, () =>
@@ -132,6 +135,7 @@ export class GameScene extends Phaser.Scene {
 
   private publishHudState(): void {
     publishHud({
+      lives: this.lives,
       coins: this.coinsCollected,
       totalCoins: this.coins.length,
       defeated: this.enemiesDefeated,
@@ -171,6 +175,8 @@ export class GameScene extends Phaser.Scene {
     enemiesDefeated: number;
     liveEnemies: number;
     activeRules: string[];
+    lives: number;
+    conditionsBlocked: number;
   } {
     if (!this.player) {
       return {
@@ -190,6 +196,8 @@ export class GameScene extends Phaser.Scene {
         enemiesDefeated: 0,
         liveEnemies: 0,
         activeRules: [],
+        lives: this.lives,
+        conditionsBlocked: 0,
       };
     }
 
@@ -211,6 +219,8 @@ export class GameScene extends Phaser.Scene {
       enemiesDefeated: this.enemiesDefeated,
       liveEnemies: this.enemies.filter((enemy) => enemy.isAlive).length,
       activeRules: this.runtime.describe(),
+      lives: this.lives,
+      conditionsBlocked: this.runtime.stats.conditionsBlocked,
     };
   }
 
@@ -235,6 +245,32 @@ export class GameScene extends Phaser.Scene {
     ceiling.setVisible(false);
     this.physics.add.existing(ceiling, true);
     return ceiling;
+  }
+
+  /**
+   * Resolves a DSL fact path against the live world.
+   *
+   * Only facts this game can actually answer are listed. Anything else returns
+   * undefined, which the evaluator turns into a blocking ConditionError rather
+   * than a silent false.
+   */
+  private readWorldFact(path: string): number | boolean | string | undefined {
+    switch (path) {
+      case "player.hp":
+        return this.lives;
+      case "player.alive":
+        return !this.isRespawning;
+      case "player.grounded":
+        return this.player?.isOnGround ?? false;
+      case "player.gravityDirection":
+        return this.player?.getGravityDirection() ?? 1;
+      case "player.coinCount":
+        return this.coinsCollected;
+      case "level.elapsedMs":
+        return this.simulationNow();
+      default:
+        return undefined;
+    }
   }
 
   private buildEnemies(): void {
@@ -314,8 +350,14 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
+    this.lives = Math.max(0, this.lives - 1);
     this.runtime.emit("player.damage", this.simulationNow());
     this.respawn(true);
+    if (this.lives === 0) {
+      this.lives = 3;
+      this.coinsCollected = 0;
+      this.enemiesDefeated = 0;
+    }
   }
 
   private buildPlatforms(): void {

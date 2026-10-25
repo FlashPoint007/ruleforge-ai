@@ -4,6 +4,7 @@ import type { RuleRuntimeStats } from "@/game/rules/types";
 import { applyRulePack, clearRules, subscribeToRules } from "@/game/rules/ruleBridge";
 
 import gravityPreset from "@content/presets/preset-gravity-flip.json";
+import guardedPreset from "@content/presets/preset-guarded-gravity.json";
 import enemySlowPreset from "@content/presets/preset-enemy-slow.json";
 
 interface PresetEntry {
@@ -21,6 +22,12 @@ const PRESETS: PresetEntry[] = [
     pack: gravityPreset,
   },
   {
+    id: guardedPreset.id,
+    name: guardedPreset.name,
+    description: guardedPreset.description,
+    pack: guardedPreset,
+  },
+  {
     id: enemySlowPreset.id,
     name: enemySlowPreset.name,
     description: "捡到金币后，所有现存敌人减速 30%，持续 5 秒。",
@@ -33,6 +40,7 @@ const EMPTY_STATS: RuleRuntimeStats = {
   eventsDropped: 0,
   actionsApplied: 0,
   actionsRejected: 0,
+  conditionsBlocked: 0,
 };
 
 /**
@@ -78,7 +86,14 @@ export function RulePanel() {
       return `规则未生效：${error}`;
     }
     if (activeId) {
-      return `规则运行中 · 已触发 ${stats.eventsDispatched} 次 · 已应用 ${stats.actionsApplied} 个动作`;
+      const parts = [
+        `已触发 ${stats.eventsDispatched} 次`,
+        `已应用 ${stats.actionsApplied} 个动作`,
+      ];
+      if (stats.conditionsBlocked > 0) {
+        parts.push(`条件未满足 ${stats.conditionsBlocked} 次`);
+      }
+      return `规则运行中 · ${parts.join(" · ")}`;
     }
     return "当前没有生效的规则。";
   }, [activeId, error, stats, unavailable]);
@@ -100,6 +115,7 @@ export function RulePanel() {
               className={`rule-card${active ? " rule-card--active" : ""}`}
               onClick={() => toggle(entry)}
               aria-pressed={active}
+              data-rule-id={entry.id}
             >
               <span className="rule-card__name">{entry.name}</span>
               <span className="rule-card__desc">{entry.description}</span>
