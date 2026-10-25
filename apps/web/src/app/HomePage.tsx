@@ -2,6 +2,7 @@ import { lazy, Suspense, useState } from "react";
 
 import { P0_ACTIONS } from "@ruleforge/rule-schema";
 
+import { RulePanel } from "@/app/RulePanel";
 import { TouchControls } from "@/game/TouchControls";
 
 const GameCanvas = lazy(() =>
@@ -40,7 +41,7 @@ export function HomePage() {
             {arenaOpen ? "收起实验室" : "进入实验室"}
           </button>
           <span className="hero__hint">
-            现在可以真正跑起来了：移动、跳跃、坠落复活都已实现，规则引擎在下一阶段接入。
+            进入实验室后，在下方「规则输入面板」启用「重力反转」，跳一次就能看到世界真的翻过来。
           </span>
         </div>
       </section>
@@ -53,6 +54,8 @@ export function HomePage() {
           </Suspense>
         </section>
       ) : null}
+
+      <RulePanel />
 
       <section className="panel">
         <h3 className="panel__title">预设规则</h3>

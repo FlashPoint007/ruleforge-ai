@@ -18,8 +18,22 @@ export class Player {
   private currentAnim: AnimationName | null = null;
   private frozen = false;
 
-  constructor(scene: Phaser.Scene, x: number, y: number) {
+  /** Set by the rule runtime. 1 is neutral, so the base feel is untouched. */
+  private speedMultiplier = 1;
+  private jumpMultiplier = 1;
+  /** 1 falls down, -1 falls up. Owned by the rule runtime, not by input. */
+  private gravityDirection: 1 | -1 = 1;
+
+  private readonly onJumpCommitted?: () => void;
+
+  constructor(
+    scene: Phaser.Scene,
+    x: number,
+    y: number,
+    onJumpCommitted?: () => void,
+  ) {
     this.scene = scene;
+    this.onJumpCommitted = onJumpCommitted;
 
     this.sprite = scene.physics.add.sprite(x, y, "hero", 0);
     this.sprite.setOrigin(0.5, 1);
@@ -63,7 +77,9 @@ export class Player {
 
   get isOnGround(): boolean {
     const body = this.sprite.body as Phaser.Physics.Arcade.Body;
-    return body.blocked.down || body.touching.down;
+    return this.gravityDirection === 1
+      ? body.blocked.down || body.touching.down
+      : body.blocked.up || body.touching.up;
   }
 
   /** Freezes control during death and respawn so input cannot fight the animation. */
@@ -72,6 +88,33 @@ export class Player {
     if (frozen) {
       this.sprite.setVelocity(0, 0);
     }
+  }
+
+  setSpeedMultiplier(multiplier: number): void {
+    this.speedMultiplier = multiplier;
+  }
+
+  setJumpMultiplier(multiplier: number): void {
+    this.jumpMultiplier = multiplier;
+  }
+
+  setGravityDirection(direction: 1 | -1): void {
+    if (this.gravityDirection === direction) {
+      return;
+    }
+    this.gravityDirection = direction;
+    const body = this.sprite.body as Phaser.Physics.Arcade.Body;
+    // Flip the world's pull and the sprite's orientation together, otherwise the
+    // character keeps falling down while visually upside down.
+    this.scene.physics.world.gravity.y = PHYSICS.gravityY * direction;
+    body.setAllowGravity(true);
+    this.sprite.setFlipY(direction === -1);
+    // Cancel existing vertical momentum so the flip reads as an instant change.
+    this.sprite.setVelocityY(0);
+  }
+
+  getGravityDirection(): 1 | -1 {
+    return this.gravityDirection;
   }
 
   playDeath(): void {
@@ -98,8 +141,11 @@ export class Player {
     const direction = (input.right ? 1 : 0) - (input.left ? 1 : 0);
     const acceleration = onGround ? PHYSICS.groundAcceleration : PHYSICS.airAcceleration;
 
+    const speedCap = PHYSICS.moveSpeed * this.speedMultiplier;
+    this.sprite.setMaxVelocity(speedCap, PHYSICS.maxFallSpeed);
+
     if (direction !== 0) {
-      body.setAccelerationX(direction * acceleration);
+      body.setAccelerationX(direction * acceleration * this.speedMultiplier);
       this.sprite.setFlipX(direction < 0);
     } else {
       body.setAccelerationX(0);
@@ -122,10 +168,13 @@ export class Player {
 
     const canJump = time <= this.coyoteUntil && time <= this.jumpBufferedUntil;
     if (canJump) {
-      this.sprite.setVelocityY(PHYSICS.jumpVelocity);
+      // Jumping "up" means "away from the floor", and the floor moves when
+      // gravity flips, so the sign is derived rather than hardcoded.
+      this.sprite.setVelocityY(PHYSICS.jumpVelocity * this.jumpMultiplier * this.gravityDirection);
       this.coyoteUntil = 0;
       this.jumpBufferedUntil = 0;
       this.jumpHeld = true;
+      this.onJumpCommitted?.();
     }
 
     // Variable jump height: releasing early trims the arc.
@@ -143,7 +192,9 @@ export class Player {
     const velocity = this.sprite.body as Phaser.Physics.Arcade.Body;
 
     if (!onGround) {
-      this.play(velocity.velocity.y < 0 ? "jump" : "fall");
+      // Rising relative to the current gravity direction: 0 is up when flipped.
+      const rising = velocity.velocity.y * this.gravityDirection < 0;
+      this.play(rising ? "jump" : "fall");
       return;
     }
 

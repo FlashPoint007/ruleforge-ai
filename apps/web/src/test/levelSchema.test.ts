@@ -10,6 +10,7 @@ const validLevel = {
   theme: "sky-ruins",
   world: { width: 2000, height: 720 },
   spawn: { x: 100, y: 500 },
+  ceilingY: 40,
   killPlaneY: 900,
   platforms: [{ x: 0, y: 600, width: 400, height: 120, material: "moss" }],
 };
@@ -39,6 +40,14 @@ describe("parseLevel", () => {
 
   it("rejects a kill plane above the spawn", () => {
     expect(() => parseLevel({ ...validLevel, killPlaneY: 100 })).toThrow(/below the spawn/);
+  });
+
+  it("requires a ceiling above the spawn so flipped gravity stays inside", () => {
+    expect(() => parseLevel({ ...validLevel, ceilingY: 600 })).toThrow(/above the spawn/);
+  });
+
+  it("parses the ceiling from the shipped level", () => {
+    expect(parseLevel(levelData).ceilingY).toBeGreaterThan(0);
   });
 
   it("rejects an empty platform list", () => {

@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
 import { App } from "@/app/App";
@@ -11,8 +12,24 @@ describe("App", () => {
 
   it("renders the two offline preset rules", () => {
     render(<App />);
-    expect(screen.getByText("重力反转")).toBeInTheDocument();
-    expect(screen.getByText("拾金减速")).toBeInTheDocument();
+    // The preset list and the rule panel both name these rules.
+    expect(screen.getAllByText("重力反转").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("拾金减速").length).toBeGreaterThan(0);
+  });
+
+  it("shows the rule panel in an inactive state by default", () => {
+    render(<App />);
+    expect(screen.getByTestId("rule-status")).toHaveTextContent("当前没有生效的规则");
+  });
+
+  it("does not claim a rule is active before the lab is running", async () => {
+    render(<App />);
+    const [card] = screen.getAllByRole("button", { name: /重力反转/ });
+    expect(card).toBeDefined();
+    await userEvent.click(card as HTMLElement);
+
+    // No game is mounted in jsdom, so the panel must say so rather than lie.
+    expect(screen.getByTestId("rule-status")).toHaveTextContent("实验室未启动");
   });
 
   it("lists all twelve registered actions", () => {

@@ -259,6 +259,73 @@ body {
   background: rgba(2, 6, 23, 0.6);
 }
 
+.panel--rules {
+  border-color: rgba(97, 205, 244, 0.22);
+}
+
+.rule-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.rule-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(2, 6, 23, 0.6);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.rule-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(97, 205, 244, 0.45);
+}
+
+.rule-card--active {
+  border-color: var(--tech-cyan);
+  background: rgba(33, 107, 171, 0.28);
+  box-shadow: 0 0 22px rgba(97, 205, 244, 0.16);
+}
+
+.rule-card__name {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.rule-card__desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.rule-card__state {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+}
+
+.rule-card--active .rule-card__state {
+  color: var(--tech-cyan);
+}
+
+.rule-status {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.rule-status--error {
+  color: var(--coral);
+}
+
 .panel--stage {
   padding: 0;
   overflow: hidden;

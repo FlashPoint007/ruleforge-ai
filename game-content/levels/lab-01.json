@@ -76,5 +76,6 @@
       "height": 120,
       "material": "moss"
     }
-  ]
+  ],
+  "ceilingY": 40
 }

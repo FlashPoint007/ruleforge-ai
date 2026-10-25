@@ -39,32 +39,23 @@ The player describes a rule in natural language. A server-side LLM returns contr
 
 ## Current milestone
 
-**RF-001, RF-002 and RF-003 are DONE.** Verified commands:
+**RF-001 / RF-002 / RF-003 done, plus the minimal rule-engine loop.**
 
-```bash
-pnpm install
-pnpm --filter @ruleforge/web dev          # http://localhost:5173
-cd apps/api && uv sync && uv run uvicorn app.main:app --reload --port 8000
-```
+Implemented actions (client runtime): `player.gravity.toggle`, `player.speed.multiply`,
+`player.jump.scale`. The other nine registered actions are declared but **rejected at
+load time** with a visible reason. Never silently ignore an action the player enabled.
 
 Quality gates that must stay green:
 
 ```bash
-pnpm --filter @ruleforge/web typecheck
-pnpm --filter @ruleforge/web lint
-pnpm --filter @ruleforge/web test          # Vitest
+pnpm --filter @ruleforge/web typecheck && pnpm --filter @ruleforge/web lint
+pnpm --filter @ruleforge/web test          # Vitest, includes the rule engine
 pnpm --filter @ruleforge/web build
-pnpm run test:e2e                          # Playwright (root config)
+pnpm run test:e2e                          # Playwright, asserts real physics state
 cd apps/api && uv run pytest -q && uv run ruff check .
 ```
 
-## Art assets
-
-Real sliced assets now live in `apps/web/public/assets/`. Slice geometry is
-measured, not guessed — see `docs/ART_DIRECTION.md` section 7. Do not invent
-placeholder shapes for art that has not been sliced yet; say it is missing.
-
 ## Next task
 
-**RF-004 only.** Do not start the DSL runtime, the compiler or the DeepSeek
-provider before RF-004 is accepted.
+**RF-004**: enemies, coins and level interactivity. Only then extend the rule runtime
+with the remaining actions.

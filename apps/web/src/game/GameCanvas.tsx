@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import type Phaser from "phaser";
 
 import { createGame } from "@/game/createGame";
+import { readDebugState, registerGame } from "@/game/rules/ruleBridge";
 
 /**
  * Mounts Phaser only in a real browser. jsdom has no canvas or WebGL, so tests
@@ -24,9 +25,17 @@ export function GameCanvas() {
 
     const game = createGame(host);
     gameRef.current = game;
+    registerGame(game);
+
+    // Test hook: lets e2e assert on real physics state. Guarded so it never
+    // ships a global in a production build.
+    if (import.meta.env.DEV || import.meta.env.MODE === "test") {
+      (window as unknown as { __ruleforge?: unknown }).__ruleforge = { readDebugState };
+    }
 
     return () => {
       gameRef.current = null;
+      registerGame(null);
       game.destroy(true);
       // Phaser leaves the canvas behind in some teardown orders; be explicit.
       host.replaceChildren();

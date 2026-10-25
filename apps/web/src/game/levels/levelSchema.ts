@@ -28,6 +28,8 @@ export interface LevelDef {
   theme: string;
   world: { width: number; height: number };
   spawn: { x: number; y: number };
+  /** Y of the invisible ceiling. A flipped-gravity world needs one. */
+  ceilingY: number;
   killPlaneY: number;
   platforms: PlatformDef[];
 }
@@ -99,6 +101,11 @@ export function parseLevel(raw: unknown): LevelDef {
     fail("killPlaneY must be below the spawn point");
   }
 
+  const ceilingY = finiteNumber(raw.ceilingY, "ceilingY");
+  if (ceilingY >= spawnY) {
+    fail("ceilingY must be above the spawn point");
+  }
+
   const platforms = raw.platforms;
   if (!Array.isArray(platforms) || platforms.length === 0) {
     fail("platforms must be a non-empty array");
@@ -137,6 +144,7 @@ export function parseLevel(raw: unknown): LevelDef {
     theme: raw.theme as string,
     world: { width: worldWidth, height: worldHeight },
     spawn: { x: spawnX, y: spawnY },
+    ceilingY,
     killPlaneY,
     platforms: parsed,
   };
