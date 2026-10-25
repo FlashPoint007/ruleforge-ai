@@ -7,6 +7,9 @@ export const IMPLEMENTED_ACTIONS: ReadonlySet<P0ActionOp> = new Set<P0ActionOp>(
   "player.gravity.toggle",
   "player.speed.multiply",
   "player.jump.scale",
+  "enemy.speed.multiply",
+  "enemy.direction.reverse",
+  "coin.flee",
 ]);
 
 export const RUNTIME_EVENTS: ReadonlySet<string> = new Set<RuntimeEventName>([
@@ -25,6 +28,8 @@ const PARAM_BOUNDS: Partial<Record<P0ActionOp, Record<string, { min: number; max
   "player.gravity.toggle": { magnitude: { min: 500, max: 1400 } },
   "player.speed.multiply": { factor: { min: 0.4, max: 2 } },
   "player.jump.scale": { factor: { min: 0.5, max: 1.7 } },
+  "enemy.speed.multiply": { factor: { min: 0.3, max: 2 } },
+  "coin.flee": { radius: { min: 40, max: 200 }, speed: { min: 30, max: 180 } },
 };
 
 export class RulePackError extends Error {

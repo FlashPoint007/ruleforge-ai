@@ -3,7 +3,7 @@
 > 用一句自然语言描述一条规则，得到一个经过确定性编译、可验证、可回放的关卡玩法。
 > Describe a rule in plain language — get a deterministic, validated, replayable game rule.
 
-**当前状态：M2 起步。可玩关卡 + 最小规则引擎闭环已跑通；LLM 生成与编译器尚未实现。**
+**当前状态：M1 完成（RF-004）。可玩关卡 + 敌人 / 金币 / 可坍塌平台 + 规则引擎闭环；LLM 生成与编译器尚未实现。**
 本项目处于开发早期，README 只描述**已经可以运行**的东西，不描述计划中的能力。
 
 ---
@@ -32,12 +32,29 @@ pnpm install && pnpm --filter @ruleforge/web dev
 - 触屏有屏幕按键，PC 与手机都能操作
 - 关卡数据在 `game-content/levels/lab-01.json`，加载前会校验，非法关卡直接拒绝而不是猜
 
+### 关卡内容（RF-004）
+
+- **5 种敌人**：史莱姆、螃蟹、刺球、水母、飞行机器人，各自巡逻
+- **10 枚金币**，实时计数显示在 HUD
+- **可坍塌平台**：踩上去 2 秒后消失，会先抖动预警
+- **踩踏击败**：从上方落到敌人头上可以击败它并弹起；侧面接触会死亡
+
 ### 规则引擎（最小闭环）
 
 点「重力反转」规则卡，跳一次 —— 世界真的翻过来，角色倒挂在顶部。
 
-已实现 3 个动作：`player.gravity.toggle`、`player.speed.multiply`、`player.jump.scale`。
-其余 9 个动作**已注册但未实现**：规则包若引用它们会被**直接拒绝并显示原因**，
+已实现 6 个动作：
+
+| 动作 | 作用 |
+|---|---|
+| `player.gravity.toggle` | 重力方向反转 |
+| `player.speed.multiply` | 玩家速度倍率 |
+| `player.jump.scale` | 跳跃高度倍率 |
+| `enemy.speed.multiply` | 所有现存敌人速度倍率（可限时） |
+| `enemy.direction.reverse` | 敌人巡逻方向反转 |
+| `coin.flee` | 金币逃离玩家 |
+
+其余 6 个动作**已注册但未实现**：规则包若引用它们会被**直接拒绝并显示原因**，
 而不是静默忽略 —— 让玩家以为规则生效了才是真正的 bug。
 
 引擎约束：

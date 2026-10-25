@@ -117,6 +117,11 @@ export class Player {
     return this.gravityDirection;
   }
 
+  /** Upward kick after stomping an enemy, relative to the current gravity. */
+  bounce(): void {
+    this.sprite.setVelocityY(PHYSICS.jumpVelocity * 0.55 * this.gravityDirection);
+  }
+
   playDeath(): void {
     this.play("death");
   }
@@ -144,21 +149,16 @@ export class Player {
     const speedCap = PHYSICS.moveSpeed * this.speedMultiplier;
     this.sprite.setMaxVelocity(speedCap, PHYSICS.maxFallSpeed);
 
+    // Drag must be set before acceleration, and it must be cleared whenever the
+    // player is actively steering. Leaving the grounded drag value in place
+    // while airborne silently cancels horizontal speed mid-jump.
+    body.setDragX(direction === 0 && onGround ? PHYSICS.groundDrag : 0);
+
     if (direction !== 0) {
       body.setAccelerationX(direction * acceleration * this.speedMultiplier);
       this.sprite.setFlipX(direction < 0);
     } else {
       body.setAccelerationX(0);
-      if (onGround) {
-        // Ground friction stops the character crisply; air keeps momentum.
-        body.setDragX(PHYSICS.groundDrag);
-      } else {
-        body.setDragX(0);
-      }
-    }
-
-    if (direction !== 0 && onGround) {
-      body.setDragX(0);
     }
 
     // --- jump ---

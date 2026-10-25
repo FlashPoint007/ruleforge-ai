@@ -5,6 +5,23 @@ import { expect, test } from "@playwright/test";
  * gracefully. Those connection failures are expected noise, not defects, so the
  * error collector below filters exactly them and nothing else.
  */
+/**
+ * Waits until the scene has finished building before reading state.
+ *
+ * Reading during create() returns a partially built scene, which used to throw.
+ */
+async function waitForScene(page: import("@playwright/test").Page): Promise<void> {
+  await page.waitForFunction(
+    () => {
+      const hook = (window as unknown as { __ruleforge?: { readDebugState: () => unknown } }).__ruleforge;
+      const state = hook?.readDebugState?.() as { ready?: boolean } | null | undefined;
+      return state?.ready === true;
+    },
+    undefined,
+    { timeout: 20_000 },
+  );
+}
+
 function collectUnexpectedErrors(page: import("@playwright/test").Page): string[] {
   const errors: string[] = [];
 
@@ -186,4 +203,70 @@ test("disabling the rule restores normal gravity", async ({ page }) => {
   expect(after.packId).toBeNull();
   expect(after.gravityDirection).toBe(1);
   expect(after.worldGravityY).toBeGreaterThan(0);
+});
+
+test("coins are collectible and counted", async ({ page }) => {
+  const errors = collectUnexpectedErrors(page);
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "进入实验室" }).click();
+  const canvas = page.getByTestId("game-canvas").locator("canvas").first();
+  await expect(canvas).toBeVisible({ timeout: 20_000 });
+  await canvas.click();
+  await waitForScene(page);
+
+  await page.keyboard.down("ArrowRight");
+  await page.waitForTimeout(1800);
+  await page.keyboard.up("ArrowRight");
+  await page.waitForTimeout(200);
+
+  const state = (await page.evaluate(() => {
+    const hook = (window as unknown as { __ruleforge?: { readDebugState: () => unknown } }).__ruleforge;
+    return hook ? hook.readDebugState() : null;
+  })) as { coinsCollected: number } | null;
+
+  expect(state?.coinsCollected ?? 0).toBeGreaterThan(0);
+  expect(errors).toEqual([]);
+});
+
+test("the enemy slow rule fires when a coin is collected", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "进入实验室" }).click();
+  const canvas = page.getByTestId("game-canvas").locator("canvas").first();
+  await expect(canvas).toBeVisible({ timeout: 20_000 });
+  await canvas.click();
+  await waitForScene(page);
+
+  await page.getByRole("button", { name: /拾金减速/ }).click();
+  await expect(page.getByTestId("rule-status")).toContainText("规则运行中");
+
+  await page.keyboard.down("ArrowRight");
+  await page.waitForTimeout(1800);
+  await page.keyboard.up("ArrowRight");
+  await page.waitForTimeout(300);
+
+  const state = (await page.evaluate(() => {
+    const hook = (window as unknown as { __ruleforge?: { readDebugState: () => unknown } }).__ruleforge;
+    return hook ? hook.readDebugState() : null;
+  })) as { actionsApplied: number; activeRules: string[]; coinsCollected: number } | null;
+
+  expect(state?.coinsCollected ?? 0).toBeGreaterThan(0);
+  expect(state?.activeRules).toContain("coin.collected → enemy.speed.multiply");
+  // The rule must actually execute, not merely be loaded.
+  expect(state?.actionsApplied ?? 0).toBeGreaterThan(0);
+});
+
+test("the level spawns enemies and they stay in the world", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "进入实验室" }).click();
+  const canvas = page.getByTestId("game-canvas").locator("canvas").first();
+  await expect(canvas).toBeVisible({ timeout: 20_000 });
+  await waitForScene(page);
+
+  const state = (await page.evaluate(() => {
+    const hook = (window as unknown as { __ruleforge?: { readDebugState: () => unknown } }).__ruleforge;
+    return hook ? hook.readDebugState() : null;
+  })) as { liveEnemies: number } | null;
+
+  expect(state?.liveEnemies ?? 0).toBe(5);
 });

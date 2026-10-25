@@ -1,15 +1,19 @@
 import Phaser from "phaser";
 
 import { CAMERA, GAME_HEIGHT, PHYSICS, RESPAWN } from "@/game/config";
+import { Coin } from "@/game/entities/Coin";
+import { Enemy } from "@/game/entities/Enemy";
 import { Player } from "@/game/entities/Player";
 import { parseLevel } from "@/game/levels/levelSchema";
 import type { LevelDef } from "@/game/levels/levelSchema";
 import { RuleRuntime } from "@/game/rules/RuleRuntime";
 import { RULES_CHANGED_EVENT } from "@/game/rules/types";
 import type { RulesChangedPayload } from "@/game/rules/types";
+import { publishHud } from "@/game/scenes/UIScene";
 import { InputSystem } from "@/game/systems/InputSystem";
 import { resetTouch } from "@/game/systems/inputBus";
 import { createBackdrop } from "@/game/world/backdrop";
+import { CrumblingPlatform } from "@/game/world/CrumblingPlatform";
 import { addPlatform } from "@/game/world/terrain";
 
 import levelData from "@content/levels/lab-01.json";
@@ -33,6 +37,14 @@ export class GameScene extends Phaser.Scene {
   private lastPackError: string | null = null;
   private lastFrame = { left: false, right: false, jumpPressed: false, jumpHeld: false };
 
+  private enemies: Enemy[] = [];
+  private coins: Coin[] = [];
+  private crumbling: CrumblingPlatform[] = [];
+  private coinsCollected = 0;
+  private enemiesDefeated = 0;
+  private hasReachedGoal = false;
+  private wasInZone = false;
+
   constructor() {
     super("GameScene");
   }
@@ -54,14 +66,25 @@ export class GameScene extends Phaser.Scene {
       setGravityDirection: (direction) => this.player?.setGravityDirection(direction),
       setPlayerSpeedMultiplier: (multiplier) => this.player?.setSpeedMultiplier(multiplier),
       setPlayerJumpMultiplier: (multiplier) => this.player?.setJumpMultiplier(multiplier),
+      getPlayerPosition: () => ({
+        x: this.player?.sprite.x ?? 0,
+        y: this.player?.sprite.y ?? 0,
+      }),
+      getEnemies: () => this.enemies.filter((enemy) => enemy.isAlive),
+      getCoins: () => this.coins.filter((coin) => !coin.isCollected),
     });
 
     this.player = new Player(this, this.checkpoint.x, this.checkpoint.y, () =>
       this.runtime.emit("player.jumpCommitted", this.simulationNow()),
     );
 
+    this.buildEnemies();
+    this.buildCoins();
+    this.buildCrumbling();
+
     this.physics.add.collider(this.player.sprite, this.platformBodies);
     this.physics.add.collider(this.player.sprite, this.buildCeiling());
+    this.wireOverlaps();
 
     this.inputSystem = new InputSystem(this);
     this.configureCamera();
@@ -89,6 +112,10 @@ export class GameScene extends Phaser.Scene {
       this.runtime.load(pack);
       this.lastPackId = this.runtime.loadedPackId;
       this.lastPackError = null;
+      // A rule enabled mid-run must be able to take effect immediately. Without
+      // this, a rule listening to an event that already fired looks broken
+      // until the player happens to trigger it again.
+      this.runtime.emit("level.start", this.simulationNow());
     } catch (error) {
       this.lastPackId = null;
       this.lastPackError = error instanceof Error ? error.message : "unknown rule pack error";
@@ -101,6 +128,15 @@ export class GameScene extends Phaser.Scene {
     this.lastPackId = null;
     this.lastPackError = null;
     this.broadcastRules();
+  }
+
+  private publishHudState(): void {
+    publishHud({
+      coins: this.coinsCollected,
+      totalCoins: this.coins.length,
+      defeated: this.enemiesDefeated,
+      rules: this.runtime.describe(),
+    });
   }
 
   private broadcastRules(): void {
@@ -119,29 +155,62 @@ export class GameScene extends Phaser.Scene {
    * engine changed physics, not that a sprite happened to move.
    */
   getDebugState(): {
+    ready: boolean;
     gravityDirection: 1 | -1;
     packId: string | null;
     actionsApplied: number;
     x: number;
     y: number;
     velocityY: number;
+    velocityX: number;
     worldGravityY: number;
     flipY: boolean;
     onGround: boolean;
     lastInput: { left: boolean; right: boolean; jumpPressed: boolean; jumpHeld: boolean };
+    coinsCollected: number;
+    enemiesDefeated: number;
+    liveEnemies: number;
+    activeRules: string[];
   } {
+    if (!this.player) {
+      return {
+        ready: false,
+        gravityDirection: 1,
+        packId: this.lastPackId,
+        actionsApplied: this.runtime?.stats.actionsApplied ?? 0,
+        x: 0,
+        y: 0,
+        velocityY: 0,
+        velocityX: 0,
+        worldGravityY: this.physics.world.gravity.y,
+        flipY: false,
+        onGround: false,
+        lastInput: { ...this.lastFrame },
+        coinsCollected: 0,
+        enemiesDefeated: 0,
+        liveEnemies: 0,
+        activeRules: [],
+      };
+    }
+
     const body = this.player.sprite.body as Phaser.Physics.Arcade.Body;
     return {
+      ready: true,
       gravityDirection: this.player.getGravityDirection(),
       packId: this.lastPackId,
       actionsApplied: this.runtime.stats.actionsApplied,
       x: Math.round(this.player.sprite.x),
       y: Math.round(this.player.sprite.y),
       velocityY: Math.round(body.velocity.y),
+      velocityX: Math.round(body.velocity.x),
       worldGravityY: this.physics.world.gravity.y,
       flipY: this.player.sprite.flipY,
       onGround: this.player.isOnGround,
       lastInput: { ...this.lastFrame },
+      coinsCollected: this.coinsCollected,
+      enemiesDefeated: this.enemiesDefeated,
+      liveEnemies: this.enemies.filter((enemy) => enemy.isAlive).length,
+      activeRules: this.runtime.describe(),
     };
   }
 
@@ -168,6 +237,87 @@ export class GameScene extends Phaser.Scene {
     return ceiling;
   }
 
+  private buildEnemies(): void {
+    this.enemies = this.level.enemies.map((def) => new Enemy(this, def));
+  }
+
+  private buildCoins(): void {
+    Coin.createTexture(this, "coin");
+    this.coins = this.level.coins.map((def) => new Coin(this, def.x, def.y, "coin"));
+  }
+
+  private buildCrumbling(): void {
+    this.crumbling = this.level.crumbling.map((def) => new CrumblingPlatform(this, def));
+  }
+
+  private wireOverlaps(): void {
+    this.physics.add.overlap(this.player.sprite, this.coins.map((c) => c.sprite), (_player, sprite) => {
+      const coin = this.coins.find((c) => c.sprite === sprite);
+      if (!coin || coin.isCollected) {
+        return;
+      }
+      coin.collect();
+      this.coinsCollected += 1;
+      this.runtime.emit("coin.collected", this.simulationNow());
+    });
+
+    this.physics.add.overlap(this.player.sprite, this.enemies.map((e) => e.sprite), () => {
+      this.handleEnemyContact();
+    });
+
+    for (const platform of this.crumbling) {
+      this.physics.add.collider(this.player.sprite, platform.body, () => {
+        platform.touch();
+      });
+    }
+  }
+
+  /**
+   * Emits player.enterZone when the player comes within range of a coin.
+   *
+   * The DSL has no per-coin trigger, so proximity to a collectible is the
+   * honest mapping for the coin.flee rule. It fires once per entry, not every
+   * frame, otherwise the rule would spam the queue.
+   */
+  private checkZoneEntry(): void {
+    const playerX = this.player.sprite.x;
+    const playerY = this.player.sprite.y;
+    const inside = this.coins.some(
+      (coin) => !coin.isCollected && Math.hypot(coin.x - playerX, coin.y - playerY) < 90,
+    );
+
+    if (inside && !this.wasInZone) {
+      this.runtime.emit("player.enterZone", this.simulationNow());
+    }
+    this.wasInZone = inside;
+  }
+
+  private handleEnemyContact(): void {
+    if (this.isRespawning) {
+      return;
+    }
+
+    const playerBody = this.player.sprite.body as Phaser.Physics.Arcade.Body;
+    // Stomping is allowed: landing on an enemy from above defeats it. Any other
+    // contact costs a life. Without this, enemies are pure punishment.
+    if (playerBody.velocity.y * this.player.getGravityDirection() > 0) {
+      const enemy = this.enemies.find(
+        (candidate) =>
+          candidate.isAlive && Math.abs(candidate.x - this.player.sprite.x) < 46,
+      );
+      if (enemy) {
+        enemy.kill();
+        this.enemiesDefeated += 1;
+        this.player.bounce();
+        this.runtime.emit("enemy.defeated", this.simulationNow());
+        return;
+      }
+    }
+
+    this.runtime.emit("player.damage", this.simulationNow());
+    this.respawn(true);
+  }
+
   private buildPlatforms(): void {
     this.platformBodies = this.level.platforms.map((def) => addPlatform(this, def).body);
   }
@@ -191,7 +341,18 @@ export class GameScene extends Phaser.Scene {
     const wasOnGround = this.player.isOnGround;
 
     this.player.update(time, frame);
+
+    for (const enemy of this.enemies) {
+      enemy.update();
+    }
+    for (const coin of this.coins) {
+      coin.update();
+    }
+
+    this.checkZoneEntry();
+
     this.runtime.tick(this.simulationNow());
+    this.publishHudState();
 
     if (!wasOnGround && this.player.isOnGround) {
       this.runtime.emit("player.landed", this.simulationNow());
@@ -199,6 +360,11 @@ export class GameScene extends Phaser.Scene {
 
     if (this.player.sprite.y > this.level.killPlaneY) {
       this.respawn(true);
+    }
+
+    const goalX = this.level.world.width - 120;
+    if (!this.hasReachedGoal && Math.abs(this.player.sprite.x - goalX) < 80) {
+      this.hasReachedGoal = true;
     }
   }
 

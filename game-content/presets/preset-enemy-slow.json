@@ -1,7 +1,7 @@
 {
   "id": "preset-enemy-slow",
   "name": "拾金减速",
-  "description": "捡到金币后，敌人减速 30%，持续 5 秒。默认预设，无需模型密钥即可游玩。",
+  "description": "捡到金币后，所有现存敌人减速 30%，持续 5 秒。默认预设，无需模型密钥即可游玩。",
   "dslVersion": "1.1.0",
   "levelId": "lab-02",
   "rules": [

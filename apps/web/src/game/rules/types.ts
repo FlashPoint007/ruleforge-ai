@@ -29,6 +29,20 @@ export interface EffectContext {
   setGravityDirection: (direction: 1 | -1) => void;
   setPlayerSpeedMultiplier: (multiplier: number) => void;
   setPlayerJumpMultiplier: (multiplier: number) => void;
+
+  /** Player position, needed by actions that react to the player. */
+  getPlayerPosition: () => { x: number; y: number };
+  /** Every live enemy, so rules can act on the whole set. */
+  getEnemies: () => ReadonlyArray<{
+    setSpeedMultiplier: (multiplier: number) => void;
+    reverse: () => void;
+  }>;
+  /** Every uncollected coin, so rules can act on the whole set. */
+  getCoins: () => ReadonlyArray<{
+    x: number;
+    y: number;
+    flee: (fromX: number, fromY: number, radius: number, speed: number) => void;
+  }>;
 }
 
 /** A live effect. Timed effects revert themselves when they expire. */

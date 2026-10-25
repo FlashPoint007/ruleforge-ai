@@ -1,7 +1,7 @@
 {
   "id": "lab-01",
   "name": "天空遗迹",
-  "version": "1.0.0",
+  "version": "1.6.0",
   "theme": "sky-ruins",
   "world": {
     "width": 3200,
@@ -11,6 +11,7 @@
     "x": 140,
     "y": 520
   },
+  "ceilingY": 40,
   "killPlaneY": 900,
   "platforms": [
     {
@@ -21,9 +22,9 @@
       "material": "moss"
     },
     {
-      "x": 740,
+      "x": 660,
       "y": 600,
-      "width": 420,
+      "width": 500,
       "height": 120,
       "material": "moss"
     },
@@ -35,8 +36,8 @@
       "material": "stone"
     },
     {
-      "x": 640,
-      "y": 460,
+      "x": 760,
+      "y": 480,
       "width": 120,
       "height": 40,
       "material": "stone"
@@ -77,5 +78,97 @@
       "material": "moss"
     }
   ],
-  "ceilingY": 40
+  "enemies": [
+    {
+      "kind": "slime",
+      "x": 900,
+      "y": 570,
+      "patrol": 120,
+      "speed": 60
+    },
+    {
+      "kind": "crab",
+      "x": 1700,
+      "y": 570,
+      "patrol": 180,
+      "speed": 80
+    },
+    {
+      "kind": "urchin",
+      "x": 2550,
+      "y": 570,
+      "patrol": 100,
+      "speed": 55
+    },
+    {
+      "kind": "jellyfish",
+      "x": 1300,
+      "y": 530,
+      "patrol": 90,
+      "speed": 45
+    },
+    {
+      "kind": "drone",
+      "x": 2150,
+      "y": 570,
+      "patrol": 160,
+      "speed": 95
+    }
+  ],
+  "coins": [
+    {
+      "x": 420,
+      "y": 570
+    },
+    {
+      "x": 480,
+      "y": 570
+    },
+    {
+      "x": 660,
+      "y": 570
+    },
+    {
+      "x": 960,
+      "y": 570
+    },
+    {
+      "x": 1220,
+      "y": 310
+    },
+    {
+      "x": 1660,
+      "y": 570
+    },
+    {
+      "x": 1740,
+      "y": 570
+    },
+    {
+      "x": 1820,
+      "y": 570
+    },
+    {
+      "x": 2240,
+      "y": 450
+    },
+    {
+      "x": 2500,
+      "y": 570
+    }
+  ],
+  "crumbling": [
+    {
+      "x": 1320,
+      "y": 600,
+      "width": 96,
+      "delayMs": 2000
+    },
+    {
+      "x": 1480,
+      "y": 500,
+      "width": 96,
+      "delayMs": 2000
+    }
+  ]
 }

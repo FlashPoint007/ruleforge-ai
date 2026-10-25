@@ -23,7 +23,7 @@ const PRESETS: PresetEntry[] = [
   {
     id: enemySlowPreset.id,
     name: enemySlowPreset.name,
-    description: "捡到金币后敌人减速 30%（需要敌人，RF-004 接入）。",
+    description: "捡到金币后，所有现存敌人减速 30%，持续 5 秒。",
     pack: enemySlowPreset,
   },
 ];

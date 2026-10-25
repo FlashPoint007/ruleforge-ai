@@ -45,16 +45,22 @@ export function clearRules(): boolean {
 }
 
 export interface DebugState {
+  ready: boolean;
   gravityDirection: 1 | -1;
   packId: string | null;
   actionsApplied: number;
   x: number;
   y: number;
   velocityY: number;
+  velocityX: number;
   worldGravityY: number;
   flipY: boolean;
   onGround: boolean;
   lastInput: { left: boolean; right: boolean; jumpPressed: boolean; jumpHeld: boolean };
+  coinsCollected: number;
+  enemiesDefeated: number;
+  liveEnemies: number;
+  activeRules: string[];
 }
 
 export function readDebugState(): DebugState | null {

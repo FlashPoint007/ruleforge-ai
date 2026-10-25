@@ -21,6 +21,43 @@ export interface PlatformDef {
   material: Material;
 }
 
+export const ENEMY_KINDS = ["slime", "crab", "urchin", "jellyfish", "drone"] as const;
+export type EnemyKind = (typeof ENEMY_KINDS)[number];
+
+/**
+ * Enemy rows in the atlas. The sheet is 4 columns of frames by 5 rows of kinds,
+ * so the row index is the kind and the columns are its animation.
+ */
+export const ENEMY_ROW: Record<EnemyKind, number> = {
+  slime: 0,
+  crab: 1,
+  urchin: 2,
+  jellyfish: 3,
+  drone: 4,
+};
+
+export interface EnemyDef {
+  kind: EnemyKind;
+  x: number;
+  y: number;
+  /** Horizontal patrol distance in px. 0 means stationary. */
+  patrol: number;
+  speed: number;
+}
+
+export interface CoinDef {
+  x: number;
+  y: number;
+}
+
+/** Platforms that disappear a moment after being stood on. */
+export interface CrumblingDef {
+  x: number;
+  y: number;
+  width: number;
+  delayMs: number;
+}
+
 export interface LevelDef {
   id: string;
   name: string;
@@ -32,6 +69,9 @@ export interface LevelDef {
   ceilingY: number;
   killPlaneY: number;
   platforms: PlatformDef[];
+  enemies: EnemyDef[];
+  coins: CoinDef[];
+  crumbling: CrumblingDef[];
 }
 
 export class LevelParseError extends Error {
@@ -137,6 +177,10 @@ export function parseLevel(raw: unknown): LevelDef {
     return platform;
   });
 
+  const enemies = parseEnemies(raw.enemies, worldWidth);
+  const coins = parseCoins(raw.coins, worldWidth);
+  const crumbling = parseCrumbling(raw.crumbling, worldWidth);
+
   return {
     id: raw.id as string,
     name: raw.name as string,
@@ -147,5 +191,91 @@ export function parseLevel(raw: unknown): LevelDef {
     ceilingY,
     killPlaneY,
     platforms: parsed,
+    enemies,
+    coins,
+    crumbling,
   };
+}
+
+function parseEnemies(raw: unknown, worldWidth: number): EnemyDef[] {
+  if (raw === undefined) {
+    return [];
+  }
+  if (!Array.isArray(raw)) {
+    fail("enemies must be an array");
+  }
+
+  return raw.map((item, index) => {
+    const label = `enemies[${index}]`;
+    if (!isRecord(item)) {
+      fail(`${label} must be an object`);
+    }
+    if (typeof item.kind !== "string" || !ENEMY_KINDS.includes(item.kind as EnemyKind)) {
+      fail(`${label}.kind must be one of ${ENEMY_KINDS.join(", ")}`);
+    }
+
+    const x = finiteNumber(item.x, `${label}.x`);
+    const patrol = finiteNumber(item.patrol, `${label}.patrol`);
+    if (patrol < 0) {
+      fail(`${label}.patrol must not be negative`);
+    }
+    if (x - patrol < 0 || x + patrol > worldWidth) {
+      fail(`${label} patrol range leaves the world`);
+    }
+
+    return {
+      kind: item.kind as EnemyKind,
+      x,
+      y: finiteNumber(item.y, `${label}.y`),
+      patrol,
+      speed: positiveNumber(item.speed, `${label}.speed`),
+    };
+  });
+}
+
+function parseCoins(raw: unknown, worldWidth: number): CoinDef[] {
+  if (raw === undefined) {
+    return [];
+  }
+  if (!Array.isArray(raw)) {
+    fail("coins must be an array");
+  }
+
+  return raw.map((item, index) => {
+    const label = `coins[${index}]`;
+    if (!isRecord(item)) {
+      fail(`${label} must be an object`);
+    }
+    const x = finiteNumber(item.x, `${label}.x`);
+    if (x < 0 || x > worldWidth) {
+      fail(`${label} is outside the world width`);
+    }
+    return { x, y: finiteNumber(item.y, `${label}.y`) };
+  });
+}
+
+function parseCrumbling(raw: unknown, worldWidth: number): CrumblingDef[] {
+  if (raw === undefined) {
+    return [];
+  }
+  if (!Array.isArray(raw)) {
+    fail("crumbling must be an array");
+  }
+
+  return raw.map((item, index) => {
+    const label = `crumbling[${index}]`;
+    if (!isRecord(item)) {
+      fail(`${label} must be an object`);
+    }
+    const x = finiteNumber(item.x, `${label}.x`);
+    const width = positiveNumber(item.width, `${label}.width`);
+    if (x < 0 || x + width > worldWidth) {
+      fail(`${label} must stay inside the world width`);
+    }
+    const delayMs = finiteNumber(item.delayMs, `${label}.delayMs`);
+    if (delayMs < 250 || delayMs > 5000) {
+      fail(`${label}.delayMs must be within the 250-5000ms spec range`);
+    }
+    return { x, y: finiteNumber(item.y, `${label}.y`), width, delayMs };
+  });
 }

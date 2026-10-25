@@ -156,6 +156,57 @@ export class RuleRuntime {
         };
       }
 
+      case "enemy.speed.multiply": {
+        const factor = this.readNumber(action, "factor");
+        // Applies to the set of enemies alive right now. Enemies spawned later
+        // are not retroactively slowed, which matches the spec wording
+        // "all existing enemies".
+        for (const enemy of this.context.getEnemies()) {
+          enemy.setSpeedMultiplier(factor);
+        }
+        return {
+          ruleId,
+          op: action.op,
+          expiresAtMs: duration === null ? null : atMs + duration,
+          revert: () => {
+            for (const enemy of this.context.getEnemies()) {
+              enemy.setSpeedMultiplier(1);
+            }
+          },
+        };
+      }
+
+      case "enemy.direction.reverse": {
+        const enemies = this.context.getEnemies();
+        for (const enemy of enemies) {
+          enemy.reverse();
+        }
+        return {
+          ruleId,
+          op: action.op,
+          // A reversal is an instantaneous event, not a state: reverting it on
+          // reset would flip the enemies a second time and look like a bug.
+          expiresAtMs: null,
+          revert: () => undefined,
+        };
+      }
+
+      case "coin.flee": {
+        const radius = this.readNumber(action, "radius");
+        const speed = this.readNumber(action, "speed");
+        const player = this.context.getPlayerPosition();
+        for (const coin of this.context.getCoins()) {
+          coin.flee(player.x, player.y, radius, speed);
+        }
+        return {
+          ruleId,
+          op: action.op,
+          expiresAtMs: null,
+          // Coins keep their new position: the flee already happened.
+          revert: () => undefined,
+        };
+      }
+
       default:
         return null;
     }

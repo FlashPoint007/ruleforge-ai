@@ -39,11 +39,14 @@ The player describes a rule in natural language. A server-side LLM returns contr
 
 ## Current milestone
 
-**RF-001 / RF-002 / RF-003 done, plus the minimal rule-engine loop.**
+**RF-001 / RF-002 / RF-003 / RF-004 done**, plus the minimal rule-engine loop.
 
-Implemented actions (client runtime): `player.gravity.toggle`, `player.speed.multiply`,
-`player.jump.scale`. The other nine registered actions are declared but **rejected at
-load time** with a visible reason. Never silently ignore an action the player enabled.
+Level content: 5 enemy kinds, 10 coins, crumbling platforms, stomp-to-defeat.
+
+Implemented actions: `player.gravity.toggle`, `player.speed.multiply`,
+`player.jump.scale`, `enemy.speed.multiply`, `enemy.direction.reverse`,
+`coin.flee`. The other six are declared but **rejected at load time** with a
+visible reason. Never silently ignore an action the player enabled.
 
 Quality gates that must stay green:
 
@@ -55,7 +58,10 @@ pnpm run test:e2e                          # Playwright, asserts real physics st
 cd apps/api && uv run pytest -q && uv run ruff check .
 ```
 
+Playwright runs with a capped worker count on purpose: each worker boots a real
+WebGL canvas, and running ten in parallel starves the CPU until teardown times out.
+
 ## Next task
 
-**RF-004**: enemies, coins and level interactivity. Only then extend the rule runtime
-with the remaining actions.
+**RF-005**: rule conditions (`conditions` is parsed but never evaluated today, so a
+rule is trigger-only), then the remaining registered actions.
