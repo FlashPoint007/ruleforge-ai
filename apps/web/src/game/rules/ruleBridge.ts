@@ -63,6 +63,8 @@ export interface DebugState {
   activeRules: string[];
   lives: number;
   conditionsBlocked: number;
+  shieldMs: number;
+  checkpointId: string | null;
 }
 
 export function readDebugState(): DebugState | null {

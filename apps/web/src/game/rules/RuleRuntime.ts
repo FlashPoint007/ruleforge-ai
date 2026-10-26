@@ -280,6 +280,116 @@ export class RuleRuntime {
         };
       }
 
+      case "player.shield.grant": {
+        const shieldMs = this.readDuration(action) ?? 5000;
+        this.context.grantShield(shieldMs);
+        return {
+          ruleId,
+          op: action.op,
+          expiresAtMs: atMs + shieldMs,
+          revert: () => this.context.grantShield(0),
+        };
+      }
+
+      case "enemy.spawn": {
+        const count = this.readNumber(action, "count");
+        const points = this.context.getEnemySpawnPoints();
+        let spawned = 0;
+        for (const point of points) {
+          if (spawned >= count) {
+            break;
+          }
+          if (this.context.spawnEnemy(point)) {
+            spawned += 1;
+          }
+        }
+        if (spawned === 0) {
+          // No safe point left: refuse rather than spawning somewhere illegal.
+          throw new RulePackError("no safe enemy spawn point available");
+        }
+        return {
+          ruleId,
+          op: action.op,
+          expiresAtMs: null,
+          // Spawned enemies are level content; removing them on reset would
+          // erase something the player can see and is standing next to.
+          revert: () => undefined,
+        };
+      }
+
+      case "coin.spawn": {
+        const count = this.readNumber(action, "count");
+        const points = this.context.getCoinSpawnPoints();
+        let spawned = 0;
+        for (const point of points) {
+          if (spawned >= count) {
+            break;
+          }
+          if (this.context.spawnCoin(point)) {
+            spawned += 1;
+          }
+        }
+        if (spawned === 0) {
+          throw new RulePackError("no safe coin spawn point available");
+        }
+        return {
+          ruleId,
+          op: action.op,
+          expiresAtMs: null,
+          revert: () => undefined,
+        };
+      }
+
+      case "platform.collapseAfter": {
+        const delayMs = this.readDelay(action);
+        const platforms = this.context.getCollapsiblePlatforms();
+        if (platforms.length === 0) {
+          // The spec limits this action to collapsible platforms; a level with
+          // none must fail loudly instead of collapsing something else.
+          throw new RulePackError("level has no collapsible platforms");
+        }
+        for (const platform of platforms) {
+          platform.collapseNow(delayMs);
+        }
+        return {
+          ruleId,
+          op: action.op,
+          expiresAtMs: null,
+          revert: () => undefined,
+        };
+      }
+
+      case "platform.visibility.set": {
+        const platformId = String(action.params["platformId"] ?? "");
+        const visible = action.params["visible"] === true;
+        if (!this.context.setPlatformVisible(platformId, visible)) {
+          throw new RulePackError(`platform "${platformId}" is not a hideable platform in this level`);
+        }
+        return {
+          ruleId,
+          op: action.op,
+          expiresAtMs: duration === null ? null : atMs + duration,
+          revert: () => {
+            this.context.setPlatformVisible(platformId, !visible);
+          },
+        };
+      }
+
+      case "checkpoint.activate": {
+        const checkpointId = String(action.params["checkpointId"] ?? "");
+        if (!this.context.activateCheckpoint(checkpointId)) {
+          throw new RulePackError(`checkpoint "${checkpointId}" is not defined in this level`);
+        }
+        return {
+          ruleId,
+          op: action.op,
+          expiresAtMs: null,
+          // A checkpoint move is progress, not a buff: undoing it on reset would
+          // send the player back to the start for no visible reason.
+          revert: () => undefined,
+        };
+      }
+
       case "coin.flee": {
         const radius = this.readNumber(action, "radius");
         const speed = this.readNumber(action, "speed");
@@ -309,8 +419,26 @@ export class RuleRuntime {
     return value;
   }
 
+  private readDelay(action: RuleAction): number {
+    const value = action.params["delayMs"];
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+      throw new RulePackError("platform.collapseAfter requires a numeric delayMs");
+    }
+    if (value < 250 || value > 5000) {
+      throw new RulePackError(`platform.collapseAfter delayMs=${value} is outside 250-5000`);
+    }
+    return value;
+  }
+
+  /**
+   * Reads a duration parameter.
+   *
+   * The spec names this parameter differently per action: buffs use
+   * `durationMs`, platform.collapseAfter uses `delayMs`. Reading only one name
+   * would silently ignore the author's value and fall back to a default.
+   */
   private readDuration(action: RuleAction): number | null {
-    const raw = action.params["durationMs"];
+    const raw = action.params["durationMs"] ?? action.params["delayMs"];
     if (raw === undefined) {
       return null;
     }

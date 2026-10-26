@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { RuleRuntime } from "@/game/rules/RuleRuntime";
-import { RulePackError, parseExecutablePack } from "@/game/rules/rulePack";
+import { IMPLEMENTED_ACTIONS, RulePackError, parseExecutablePack } from "@/game/rules/rulePack";
+import { P0_ACTIONS } from "@ruleforge/rule-schema";
 import type { EffectContext } from "@/game/rules/types";
 
 function makeEnemy() {
@@ -36,6 +37,11 @@ function makeContext() {
   let jump = 1;
   const enemies = [makeEnemy(), makeEnemy()];
   const coins = [makeCoin(120, 100), makeCoin(160, 140)];
+  const spawned = { enemies: [] as Array<{ x: number; y: number }>, coins: [] as Array<{ x: number; y: number }> };
+  const platforms: Array<{ collapseNow: (delayMs: number) => void; delays: number[] }> = [];
+  const hiddenCalls: Array<{ id: string; visible: boolean }> = [];
+  const activated: string[] = [];
+  let shield = 0;
   const facts: Record<string, number | boolean | string> = {
     "player.hp": 3,
     "player.alive": true,
@@ -60,6 +66,36 @@ function makeContext() {
     getEnemies: () => enemies,
     getCoins: () => coins,
     readFact: (path) => facts[path],
+    getEnemySpawnPoints: () => [
+      { x: 200, y: 100 },
+      { x: 240, y: 100 },
+    ],
+    getCoinSpawnPoints: () => [
+      { x: 300, y: 100 },
+      { x: 330, y: 100 },
+      { x: 360, y: 100 },
+    ],
+    spawnEnemy: (point) => {
+      spawned.enemies.push(point);
+      return spawned.enemies.length <= 4;
+    },
+    spawnCoin: (point) => {
+      spawned.coins.push(point);
+      return spawned.coins.length <= 6;
+    },
+    getCollapsiblePlatforms: () => platforms,
+    setPlatformVisible: (id, visible) => {
+      hiddenCalls.push({ id, visible });
+      return id === "bridge-1";
+    },
+    grantShield: (durationMs) => {
+      shield = durationMs;
+    },
+    activateCheckpoint: (id) => {
+      activated.push(id);
+      return id === "mid-1";
+    },
+    getCheckpointIds: () => ["mid-1"],
   };
 
   return {
@@ -67,6 +103,11 @@ function makeContext() {
     enemies,
     coins,
     facts,
+    spawned,
+    platforms,
+    hiddenCalls,
+    activated,
+    readShield: () => shield,
     read: () => ({ gravity, speed, jump }),
   };
 }
@@ -200,6 +241,15 @@ describe("RuleRuntime", () => {
       getEnemies: () => [],
       getCoins: () => [],
       readFact: () => undefined,
+      getEnemySpawnPoints: () => [],
+      getCoinSpawnPoints: () => [],
+      spawnEnemy: () => false,
+      spawnCoin: () => false,
+      getCollapsiblePlatforms: () => [],
+      setPlatformVisible: () => false,
+      grantShield: () => undefined,
+      activateCheckpoint: () => false,
+      getCheckpointIds: () => [],
     });
 
     localRuntime.load({
@@ -438,25 +488,163 @@ describe("RuleRuntime conditions", () => {
   });
 });
 
+describe("RuleRuntime RF-006 actions", () => {
+  function loadRule(harness: ReturnType<typeof makeContext>, action: Record<string, unknown>, trigger = "level.start") {
+    const runtime = new RuleRuntime(harness.context);
+    runtime.load({
+      ...gravityPack,
+      rules: [{ id: "rule-x", trigger: { event: trigger }, conditions: [], actions: [action] }],
+    });
+    return runtime;
+  }
+
+  it("grants a shield and reverts it on expiry", () => {
+    const harness = makeContext();
+    const runtime = loadRule(harness, {
+      op: "player.shield.grant",
+      target: "player",
+      params: { durationMs: 2000 },
+    });
+
+    runtime.emit("level.start", 0);
+    runtime.tick(0);
+    expect(harness.readShield()).toBe(2000);
+
+    runtime.tick(2000);
+    expect(harness.readShield()).toBe(0);
+  });
+
+  it("spawns enemies at safe points only, and refuses when full", () => {
+    const harness = makeContext();
+    const runtime = loadRule(harness, {
+      op: "enemy.spawn",
+      target: "enemies",
+      params: { count: 2 },
+    });
+
+    runtime.emit("level.start", 0);
+    runtime.tick(0);
+
+    expect(harness.spawned.enemies).toHaveLength(2);
+    expect(harness.spawned.enemies[0]).toEqual({ x: 200, y: 100 });
+  });
+
+  it("spawns coins at safe points", () => {
+    const harness = makeContext();
+    const runtime = loadRule(harness, {
+      op: "coin.spawn",
+      target: "coins",
+      params: { count: 3 },
+    });
+
+    runtime.emit("level.start", 0);
+    runtime.tick(0);
+
+    expect(harness.spawned.coins).toHaveLength(3);
+  });
+
+  it("collapses only the platforms the level marked collapsible", () => {
+    const harness = makeContext();
+    const delays: number[] = [];
+    harness.platforms.push({ collapseNow: (d) => delays.push(d), delays });
+
+    const runtime = loadRule(harness, {
+      op: "platform.collapseAfter",
+      target: "platform",
+      params: { delayMs: 1500 },
+    });
+
+    runtime.emit("level.start", 0);
+    runtime.tick(0);
+
+    expect(delays).toEqual([1500]);
+  });
+
+  it("refuses to collapse when the level has no collapsible platform", () => {
+    const harness = makeContext();
+    const runtime = loadRule(harness, {
+      op: "platform.collapseAfter",
+      target: "platform",
+      params: { delayMs: 1500 },
+    });
+
+    runtime.emit("level.start", 0);
+    runtime.tick(0);
+
+    expect(runtime.stats.actionsApplied).toBe(0);
+    expect(runtime.stats.actionsRejected).toBe(1);
+  });
+
+  it("hides a platform by allowlist id and restores it on reset", () => {
+    const harness = makeContext();
+    const runtime = loadRule(harness, {
+      op: "platform.visibility.set",
+      target: "platform",
+      params: { platformId: "bridge-1", visible: false },
+    });
+
+    runtime.emit("level.start", 0);
+    runtime.tick(0);
+    expect(harness.hiddenCalls).toEqual([{ id: "bridge-1", visible: false }]);
+
+    runtime.reset();
+    expect(harness.hiddenCalls).toEqual([
+      { id: "bridge-1", visible: false },
+      { id: "bridge-1", visible: true },
+    ]);
+  });
+
+  it("rejects a platform id the level does not define", () => {
+    const harness = makeContext();
+    const runtime = loadRule(harness, {
+      op: "platform.visibility.set",
+      target: "platform",
+      params: { platformId: "not-a-platform", visible: false },
+    });
+
+    runtime.emit("level.start", 0);
+    runtime.tick(0);
+
+    expect(runtime.stats.actionsRejected).toBe(1);
+  });
+
+  it("activates a predefined checkpoint", () => {
+    const harness = makeContext();
+    const runtime = loadRule(harness, {
+      op: "checkpoint.activate",
+      target: "player",
+      params: { checkpointId: "mid-1" },
+    });
+
+    runtime.emit("level.start", 0);
+    runtime.tick(0);
+
+    expect(harness.activated).toEqual(["mid-1"]);
+  });
+
+  it("rejects an unknown checkpoint id", () => {
+    const harness = makeContext();
+    const runtime = loadRule(harness, {
+      op: "checkpoint.activate",
+      target: "player",
+      params: { checkpointId: "nope" },
+    });
+
+    runtime.emit("level.start", 0);
+    runtime.tick(0);
+
+    expect(runtime.stats.actionsRejected).toBe(1);
+  });
+});
+
 describe("parseExecutablePack", () => {
   it("accepts the shipped gravity preset", () => {
     expect(() => parseExecutablePack(gravityPack)).not.toThrow();
   });
 
-  it("rejects an action that is registered but not implemented", () => {
-    expect(() =>
-      parseExecutablePack({
-        ...gravityPack,
-        rules: [
-          {
-            id: "rule-spawn",
-            trigger: { event: "coin.collected" },
-            conditions: [],
-            actions: [{ op: "platform.collapseAfter", target: "platform", params: {} }],
-          },
-        ],
-      }),
-    ).toThrow(/not implemented yet/);
+  it("now implements every registered action", () => {
+    // RF-006 closed the last gap: no registered op may be missing.
+    expect(IMPLEMENTED_ACTIONS.size).toBe(P0_ACTIONS.length);
   });
 
   it("rejects a parameter outside the spec bounds", () => {

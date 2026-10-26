@@ -49,9 +49,15 @@ export class CrumblingPlatform {
 
   /** Called when the player lands on this platform. */
   touch(): void {
+    this.collapseNow(this.delayMs);
+  }
+
+  /** Rule-driven collapse: the delay comes from the action's parameter. */
+  collapseNow(delayMs: number): void {
     if (this.collapsed || this.timer !== null) {
       return;
     }
+    const effectiveDelay = Math.min(Math.max(delayMs, 250), 5000);
 
     // Shake to telegraph the collapse: a platform that vanishes without warning
     // reads as a bug, not as a rule.
@@ -63,7 +69,7 @@ export class CrumblingPlatform {
       repeat: -1,
     });
 
-    this.timer = this.scene.time.delayedCall(this.delayMs, () => {
+    this.timer = this.scene.time.delayedCall(effectiveDelay, () => {
       this.timer = null;
       this.collapse();
     });

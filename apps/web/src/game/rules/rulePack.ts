@@ -12,6 +12,12 @@ export const IMPLEMENTED_ACTIONS: ReadonlySet<P0ActionOp> = new Set<P0ActionOp>(
   "enemy.speed.multiply",
   "enemy.direction.reverse",
   "coin.flee",
+  "player.shield.grant",
+  "enemy.spawn",
+  "coin.spawn",
+  "platform.visibility.set",
+  "platform.collapseAfter",
+  "checkpoint.activate",
 ]);
 
 export const RUNTIME_EVENTS: ReadonlySet<string> = new Set<RuntimeEventName>([
@@ -32,6 +38,21 @@ const PARAM_BOUNDS: Partial<Record<P0ActionOp, Record<string, { min: number; max
   "player.jump.scale": { factor: { min: 0.5, max: 1.7 } },
   "enemy.speed.multiply": { factor: { min: 0.3, max: 2 } },
   "coin.flee": { radius: { min: 40, max: 200 }, speed: { min: 30, max: 180 } },
+  "player.shield.grant": { durationMs: { min: 1000, max: 10000 } },
+  "enemy.spawn": { count: { min: 1, max: 2 } },
+  "coin.spawn": { count: { min: 1, max: 3 } },
+  "platform.collapseAfter": { delayMs: { min: 250, max: 5000 } },
+};
+
+/** Parameters that must be present and boolean, not numeric. */
+const BOOLEAN_PARAMS: Partial<Record<P0ActionOp, string[]>> = {
+  "platform.visibility.set": ["visible"],
+};
+
+/** Parameters that must be present and a non-empty string. */
+const STRING_PARAMS: Partial<Record<P0ActionOp, string[]>> = {
+  "platform.visibility.set": ["platformId"],
+  "checkpoint.activate": ["checkpointId"],
 };
 
 export class RulePackError extends Error {
@@ -97,6 +118,19 @@ export function parseExecutablePack(raw: unknown): { id: string; rules: unknown[
     for (const action of rule.actions) {
       if (!IMPLEMENTED_ACTIONS.has(action.op)) {
         fail(`rule "${rule.id}" uses action "${action.op}", which is not implemented yet`);
+      }
+
+      for (const name of BOOLEAN_PARAMS[action.op] ?? []) {
+        if (typeof action.params[name] !== "boolean") {
+          fail(`rule "${rule.id}" action "${action.op}" needs a boolean "${name}"`);
+        }
+      }
+
+      for (const name of STRING_PARAMS[action.op] ?? []) {
+        const value = action.params[name];
+        if (typeof value !== "string" || value.length === 0) {
+          fail(`rule "${rule.id}" action "${action.op}" needs a non-empty "${name}"`);
+        }
       }
 
       const bounds = PARAM_BOUNDS[action.op];

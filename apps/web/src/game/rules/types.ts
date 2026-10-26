@@ -57,6 +57,35 @@ export interface EffectContext {
     y: number;
     flee: (fromX: number, fromY: number, radius: number, speed: number) => void;
   }>;
+
+  /**
+   * Safe spawn points authored in the level.
+   *
+   * The spec forbids spawning anywhere else ("仅地图安全生成点"), so an action
+   * with no eligible point is rejected rather than dropping an entity into the
+   * void or on top of the player.
+   */
+  getEnemySpawnPoints: () => ReadonlyArray<{ x: number; y: number }>;
+  getCoinSpawnPoints: () => ReadonlyArray<{ x: number; y: number }>;
+
+  /** Spawns one enemy. Returns false when the level has no room left. */
+  spawnEnemy: (point: { x: number; y: number }) => boolean;
+  /** Spawns one coin. Returns false when the level has no room left. */
+  spawnCoin: (point: { x: number; y: number }) => boolean;
+
+  /** Platforms the level marked collapsible. Only these may be collapsed. */
+  getCollapsiblePlatforms: () => ReadonlyArray<{ collapseNow: (delayMs: number) => void }>;
+  /** Platforms the level marked hideable, addressed by allowlist id. */
+  setPlatformVisible: (platformId: string, visible: boolean) => boolean;
+
+  /** Grants one shield layer for the given duration. */
+  grantShield: (durationMs: number) => void;
+
+  /** Moves the respawn checkpoint to a predefined id. */
+  activateCheckpoint: (checkpointId: string) => boolean;
+
+  /** Predefined checkpoint ids the level actually defines. */
+  getCheckpointIds: () => ReadonlyArray<string>;
 }
 
 /** A live effect. Timed effects revert themselves when they expire. */

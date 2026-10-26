@@ -58,6 +58,27 @@ export interface CrumblingDef {
   delayMs: number;
 }
 
+/** A point the level author has vetted for spawning. Rules may only use these. */
+export interface SpawnPointDef {
+  x: number;
+  y: number;
+}
+
+/** A platform a rule may hide or show, addressed by a stable id. */
+export interface HideablePlatformDef {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface CheckpointDef {
+  id: string;
+  x: number;
+  y: number;
+}
+
 export interface LevelDef {
   id: string;
   name: string;
@@ -72,6 +93,10 @@ export interface LevelDef {
   enemies: EnemyDef[];
   coins: CoinDef[];
   crumbling: CrumblingDef[];
+  enemySpawnPoints: SpawnPointDef[];
+  coinSpawnPoints: SpawnPointDef[];
+  hideablePlatforms: HideablePlatformDef[];
+  checkpoints: CheckpointDef[];
 }
 
 export class LevelParseError extends Error {
@@ -180,6 +205,10 @@ export function parseLevel(raw: unknown): LevelDef {
   const enemies = parseEnemies(raw.enemies, worldWidth);
   const coins = parseCoins(raw.coins, worldWidth);
   const crumbling = parseCrumbling(raw.crumbling, worldWidth);
+  const enemySpawnPoints = parsePoints(raw.enemySpawnPoints, worldWidth, "enemySpawnPoints");
+  const coinSpawnPoints = parsePoints(raw.coinSpawnPoints, worldWidth, "coinSpawnPoints");
+  const hideablePlatforms = parseHideable(raw.hideablePlatforms, worldWidth);
+  const checkpoints = parseCheckpoints(raw.checkpoints, worldWidth);
 
   return {
     id: raw.id as string,
@@ -194,7 +223,96 @@ export function parseLevel(raw: unknown): LevelDef {
     enemies,
     coins,
     crumbling,
+    enemySpawnPoints,
+    coinSpawnPoints,
+    hideablePlatforms,
+    checkpoints,
   };
+}
+
+function parsePoints(raw: unknown, worldWidth: number, label: string): SpawnPointDef[] {
+  if (raw === undefined) {
+    return [];
+  }
+  if (!Array.isArray(raw)) {
+    fail(`${label} must be an array`);
+  }
+  return raw.map((item, index) => {
+    const at = `${label}[${index}]`;
+    if (!isRecord(item)) {
+      fail(`${at} must be an object`);
+    }
+    const x = finiteNumber(item.x, `${at}.x`);
+    if (x < 0 || x > worldWidth) {
+      fail(`${at} is outside the world width`);
+    }
+    return { x, y: finiteNumber(item.y, `${at}.y`) };
+  });
+}
+
+function parseHideable(raw: unknown, worldWidth: number): HideablePlatformDef[] {
+  if (raw === undefined) {
+    return [];
+  }
+  if (!Array.isArray(raw)) {
+    fail("hideablePlatforms must be an array");
+  }
+  const seen = new Set<string>();
+  return raw.map((item, index) => {
+    const label = `hideablePlatforms[${index}]`;
+    if (!isRecord(item)) {
+      fail(`${label} must be an object`);
+    }
+    if (typeof item.id !== "string" || item.id.length === 0) {
+      fail(`${label}.id must be a non-empty string`);
+    }
+    if (seen.has(item.id)) {
+      // A duplicate id would make a rule target an ambiguous platform.
+      fail(`${label}.id "${item.id}" is duplicated`);
+    }
+    seen.add(item.id);
+
+    const x = finiteNumber(item.x, `${label}.x`);
+    const width = positiveNumber(item.width, `${label}.width`);
+    if (x < 0 || x + width > worldWidth) {
+      fail(`${label} must stay inside the world width`);
+    }
+    return {
+      id: item.id,
+      x,
+      y: finiteNumber(item.y, `${label}.y`),
+      width,
+      height: positiveNumber(item.height, `${label}.height`),
+    };
+  });
+}
+
+function parseCheckpoints(raw: unknown, worldWidth: number): CheckpointDef[] {
+  if (raw === undefined) {
+    return [];
+  }
+  if (!Array.isArray(raw)) {
+    fail("checkpoints must be an array");
+  }
+  const seen = new Set<string>();
+  return raw.map((item, index) => {
+    const label = `checkpoints[${index}]`;
+    if (!isRecord(item)) {
+      fail(`${label} must be an object`);
+    }
+    if (typeof item.id !== "string" || item.id.length === 0) {
+      fail(`${label}.id must be a non-empty string`);
+    }
+    if (seen.has(item.id)) {
+      fail(`${label}.id "${item.id}" is duplicated`);
+    }
+    seen.add(item.id);
+    const x = finiteNumber(item.x, `${label}.x`);
+    if (x < 0 || x > worldWidth) {
+      fail(`${label} is outside the world width`);
+    }
+    return { id: item.id, x, y: finiteNumber(item.y, `${label}.y`) };
+  });
 }
 
 function parseEnemies(raw: unknown, worldWidth: number): EnemyDef[] {

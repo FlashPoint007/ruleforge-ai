@@ -10,6 +10,18 @@ import { expect, test } from "@playwright/test";
  *
  * Reading during create() returns a partially built scene, which used to throw.
  */
+/** Waits for a grounded frame: a jump during the spawn fall is swallowed. */
+async function waitForGround(page: import("@playwright/test").Page): Promise<void> {
+  await page.waitForFunction(
+    () => {
+      const hook = (window as unknown as { __ruleforge?: { readDebugState: () => { onGround: boolean } } }).__ruleforge;
+      return hook?.readDebugState?.().onGround === true;
+    },
+    undefined,
+    { timeout: 10_000 },
+  );
+}
+
 async function waitForScene(page: import("@playwright/test").Page): Promise<void> {
   await page.waitForFunction(
     () => {
@@ -151,6 +163,18 @@ test("flipped gravity cannot launch the player out of the level", async ({ page 
   await canvas.click();
 
   await page.locator('[data-rule-id="preset-gravity-flip"]').click();
+
+  // The character spawns a little above the floor; a jump during that fall is
+  // swallowed by the buffer, so wait for a grounded frame before jumping.
+  await page.waitForFunction(
+    () => {
+      const hook = (window as unknown as { __ruleforge?: { readDebugState: () => { onGround: boolean } } }).__ruleforge;
+      return hook?.readDebugState?.().onGround === true;
+    },
+    undefined,
+    { timeout: 10_000 },
+  );
+
   await page.keyboard.down("Space");
   await page.waitForTimeout(250);
   await page.keyboard.up("Space");
@@ -336,4 +360,64 @@ test("a rule condition blocks the action until it is satisfied", async ({ page }
   const fired = (await readState()) as State;
   expect(fired.actionsApplied).toBeGreaterThan(0);
   expect(fired.gravityDirection).toBe(-1);
+});
+
+test("every registered action is implemented and none is rejected at load", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "进入实验室" }).click();
+  const canvas = page.getByTestId("game-canvas").locator("canvas").first();
+  await expect(canvas).toBeVisible({ timeout: 20_000 });
+  await canvas.click();
+  await waitForScene(page);
+
+  // Load each preset in turn: a pack referencing an unimplemented action would
+  // surface as a visible error instead of a running rule.
+  for (const id of [
+    "preset-gravity-flip",
+    "preset-guarded-gravity",
+    "preset-shield-on-coin",
+    "preset-enemy-slow",
+  ]) {
+    await page.locator(`[data-rule-id="${id}"]`).click();
+    await expect(page.getByTestId("rule-status")).toContainText("规则运行中");
+    await expect(page.getByTestId("rule-status")).not.toContainText("规则未生效");
+    await page.locator(`[data-rule-id="${id}"]`).click();
+  }
+});
+
+test("the shield rule grants a timed shield after three coins", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "进入实验室" }).click();
+  const canvas = page.getByTestId("game-canvas").locator("canvas").first();
+  await expect(canvas).toBeVisible({ timeout: 20_000 });
+  await canvas.click();
+  await waitForScene(page);
+
+  const readState = () =>
+    page.evaluate(() => {
+      const hook = (window as unknown as { __ruleforge?: { readDebugState: () => unknown } }).__ruleforge;
+      return hook ? hook.readDebugState() : null;
+    });
+
+  type State = { coinsCollected: number; shieldMs: number; actionsApplied: number; conditionsBlocked: number };
+
+  await page.locator('[data-rule-id="preset-shield-on-coin"]').click();
+
+  await page.keyboard.down("ArrowRight");
+  await page.waitForTimeout(1600);
+  await page.keyboard.up("ArrowRight");
+  await page.waitForTimeout(200);
+
+  const state = (await readState()) as State;
+
+  expect(state.coinsCollected).toBeGreaterThanOrEqual(3);
+  expect(state.actionsApplied).toBeGreaterThan(0);
+  // modEq 3 blocks every other collection, which is the point of the guard.
+  expect(state.conditionsBlocked).toBeGreaterThan(0);
+  expect(state.shieldMs).toBeGreaterThan(0);
+  expect(state.shieldMs).toBeLessThanOrEqual(6000);
+
+  // The panel must reflect live engine stats, not only the load-time snapshot.
+  await expect(page.getByTestId("rule-status")).toContainText("已应用");
+  await expect(page.getByTestId("rule-status")).not.toContainText("已应用 0 个动作");
 });

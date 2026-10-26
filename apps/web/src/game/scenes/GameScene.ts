@@ -14,6 +14,7 @@ import { InputSystem } from "@/game/systems/InputSystem";
 import { resetTouch } from "@/game/systems/inputBus";
 import { createBackdrop } from "@/game/world/backdrop";
 import { CrumblingPlatform } from "@/game/world/CrumblingPlatform";
+import { HideablePlatform } from "@/game/world/HideablePlatform";
 import { addPlatform } from "@/game/world/terrain";
 
 import levelData from "@content/levels/lab-01.json";
@@ -46,6 +47,9 @@ export class GameScene extends Phaser.Scene {
   private wasInZone = false;
   /** Lives are part of the DSL fact surface (player.hp), so they are real state. */
   private lives = 3;
+  private shieldUntil = 0;
+  private hideablePlatforms = new Map<string, HideablePlatform>();
+  private lastStatsSignature = "";
 
   constructor() {
     super("GameScene");
@@ -75,6 +79,18 @@ export class GameScene extends Phaser.Scene {
       getEnemies: () => this.enemies.filter((enemy) => enemy.isAlive),
       getCoins: () => this.coins.filter((coin) => !coin.isCollected),
       readFact: (path) => this.readWorldFact(path),
+
+      getEnemySpawnPoints: () => this.level.enemySpawnPoints,
+      getCoinSpawnPoints: () => this.level.coinSpawnPoints,
+      spawnEnemy: (point) => this.spawnEnemyAt(point),
+      spawnCoin: (point) => this.spawnCoinAt(point),
+
+      getCollapsiblePlatforms: () => this.crumbling,
+      setPlatformVisible: (id, visible) => this.setPlatformVisible(id, visible),
+
+      grantShield: (durationMs) => this.grantShield(durationMs),
+      activateCheckpoint: (id) => this.activateCheckpoint(id),
+      getCheckpointIds: () => this.level.checkpoints.map((c) => c.id),
     });
 
     this.player = new Player(this, this.checkpoint.x, this.checkpoint.y, () =>
@@ -84,6 +100,7 @@ export class GameScene extends Phaser.Scene {
     this.buildEnemies();
     this.buildCoins();
     this.buildCrumbling();
+    this.buildHideablePlatforms();
 
     this.physics.add.collider(this.player.sprite, this.platformBodies);
     this.physics.add.collider(this.player.sprite, this.buildCeiling());
@@ -123,6 +140,7 @@ export class GameScene extends Phaser.Scene {
       this.lastPackId = null;
       this.lastPackError = error instanceof Error ? error.message : "unknown rule pack error";
     }
+    this.lastStatsSignature = "";
     this.broadcastRules();
   }
 
@@ -130,6 +148,23 @@ export class GameScene extends Phaser.Scene {
     this.runtime.unload();
     this.lastPackId = null;
     this.lastPackError = null;
+    this.broadcastRules();
+  }
+
+  /**
+   * Pushes rule stats to the panel when they change.
+   *
+   * Broadcasting every frame would re-render React 60 times a second for a
+   * counter the player cannot read that fast; broadcasting only on load left the
+   * panel showing "0 actions" while a rule was clearly working.
+   */
+  private syncRuleStats(): void {
+    const stats = this.runtime.stats;
+    const signature = `${this.lastPackId}|${stats.eventsDispatched}|${stats.actionsApplied}|${stats.conditionsBlocked}|${stats.actionsRejected}`;
+    if (signature === this.lastStatsSignature) {
+      return;
+    }
+    this.lastStatsSignature = signature;
     this.broadcastRules();
   }
 
@@ -177,6 +212,8 @@ export class GameScene extends Phaser.Scene {
     activeRules: string[];
     lives: number;
     conditionsBlocked: number;
+    shieldMs: number;
+    checkpointId: string | null;
   } {
     if (!this.player) {
       return {
@@ -198,6 +235,8 @@ export class GameScene extends Phaser.Scene {
         activeRules: [],
         lives: this.lives,
         conditionsBlocked: 0,
+        shieldMs: 0,
+        checkpointId: null,
       };
     }
 
@@ -221,6 +260,10 @@ export class GameScene extends Phaser.Scene {
       activeRules: this.runtime.describe(),
       lives: this.lives,
       conditionsBlocked: this.runtime.stats.conditionsBlocked,
+      shieldMs: Math.max(0, Math.round(this.shieldUntil - this.time.now)),
+      checkpointId:
+        this.level.checkpoints.find((c) => c.x === this.checkpoint.x && c.y === this.checkpoint.y)?.id ??
+        null,
     };
   }
 
@@ -273,6 +316,73 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * Spawns one enemy at a level-vetted point.
+   *
+   * Returns false when the point is already occupied, so a rule that spawns
+   * repeatedly cannot stack enemies into a single pixel.
+   */
+  private spawnEnemyAt(point: { x: number; y: number }): boolean {
+    const occupied = this.enemies.some(
+      (enemy) => enemy.isAlive && Math.hypot(enemy.x - point.x, enemy.y - point.y) < 40,
+    );
+    if (occupied) {
+      return false;
+    }
+    const enemy = new Enemy(this, { kind: "slime", x: point.x, y: point.y, patrol: 80, speed: 60 });
+    this.enemies.push(enemy);
+    this.physics.add.overlap(this.player.sprite, enemy.sprite, () => this.handleEnemyContact());
+    return true;
+  }
+
+  private spawnCoinAt(point: { x: number; y: number }): boolean {
+    const occupied = this.coins.some(
+      (coin) => !coin.isCollected && Math.hypot(coin.x - point.x, coin.y - point.y) < 30,
+    );
+    if (occupied) {
+      return false;
+    }
+    const coin = new Coin(this, point.x, point.y, "coin");
+    this.coins.push(coin);
+    this.physics.add.overlap(this.player.sprite, coin.sprite, () => {
+      if (coin.isCollected) {
+        return;
+      }
+      coin.collect();
+      this.coinsCollected += 1;
+      this.runtime.emit("coin.collected", this.simulationNow());
+    });
+    return true;
+  }
+
+  private setPlatformVisible(platformId: string, visible: boolean): boolean {
+    const platform = this.hideablePlatforms.get(platformId);
+    if (!platform) {
+      return false;
+    }
+    platform.setVisible(visible);
+    return true;
+  }
+
+  private grantShield(durationMs: number): void {
+    if (durationMs <= 0) {
+      this.shieldUntil = 0;
+      this.player?.setShielded(false);
+      return;
+    }
+    this.shieldUntil = this.time.now + durationMs;
+    this.player?.setShielded(true);
+  }
+
+  private activateCheckpoint(checkpointId: string): boolean {
+    const checkpoint = this.level.checkpoints.find((c) => c.id === checkpointId);
+    if (!checkpoint) {
+      return false;
+    }
+    this.checkpoint = { x: checkpoint.x, y: checkpoint.y };
+    return true;
+  }
+
   private buildEnemies(): void {
     this.enemies = this.level.enemies.map((def) => new Enemy(this, def));
   }
@@ -280,6 +390,14 @@ export class GameScene extends Phaser.Scene {
   private buildCoins(): void {
     Coin.createTexture(this, "coin");
     this.coins = this.level.coins.map((def) => new Coin(this, def.x, def.y, "coin"));
+  }
+
+  private buildHideablePlatforms(): void {
+    for (const def of this.level.hideablePlatforms) {
+      const platform = new HideablePlatform(this, def);
+      this.hideablePlatforms.set(def.id, platform);
+      this.platformBodies.push(platform.body);
+    }
   }
 
   private buildCrumbling(): void {
@@ -333,6 +451,13 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    if (this.time.now < this.shieldUntil) {
+      // A shield absorbs the hit instead of the life.
+      this.shieldUntil = 0;
+      this.player.setShielded(false);
+      return;
+    }
+
     const playerBody = this.player.sprite.body as Phaser.Physics.Arcade.Body;
     // Stomping is allowed: landing on an enemy from above defeats it. Any other
     // contact costs a life. Without this, enemies are pure punishment.
@@ -382,6 +507,11 @@ export class GameScene extends Phaser.Scene {
     this.lastFrame = frame;
     const wasOnGround = this.player.isOnGround;
 
+    if (this.shieldUntil > 0 && this.time.now >= this.shieldUntil) {
+      this.shieldUntil = 0;
+      this.player.setShielded(false);
+    }
+
     this.player.update(time, frame);
 
     for (const enemy of this.enemies) {
@@ -395,6 +525,7 @@ export class GameScene extends Phaser.Scene {
 
     this.runtime.tick(this.simulationNow());
     this.publishHudState();
+    this.syncRuleStats();
 
     if (!wasOnGround && this.player.isOnGround) {
       this.runtime.emit("player.landed", this.simulationNow());

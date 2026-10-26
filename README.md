@@ -3,7 +3,7 @@
 > 用一句自然语言描述一条规则，得到一个经过确定性编译、可验证、可回放的关卡玩法。
 > Describe a rule in plain language — get a deterministic, validated, replayable game rule.
 
-**当前状态：M2 进行中（RF-005）。可玩关卡 + 带条件的规则引擎；LLM 生成与编译器尚未实现。**
+**当前状态：M2 完成（RF-006）。可玩关卡 + 带条件的规则引擎 + 12/12 动作全部可用；LLM 生成与编译器尚未实现。**
 本项目处于开发早期，README 只描述**已经可以运行**的东西，不描述计划中的能力。
 
 ---
@@ -43,7 +43,7 @@ pnpm install && pnpm --filter @ruleforge/web dev
 
 点「重力反转」规则卡，跳一次 —— 世界真的翻过来，角色倒挂在顶部。
 
-已实现 6 个动作：
+**12 个动作全部实现**（RF-006 补齐最后 6 个）。
 
 | 动作 | 作用 |
 |---|---|
@@ -54,8 +54,17 @@ pnpm install && pnpm --filter @ruleforge/web dev
 | `enemy.direction.reverse` | 敌人巡逻方向反转 |
 | `coin.flee` | 金币逃离玩家 |
 
-其余 6 个动作**已注册但未实现**：规则包若引用它们会被**直接拒绝并显示原因**，
-而不是静默忽略 —— 让玩家以为规则生效了才是真正的 bug。
+新增的 6 个动作都带有规范要求的硬约束，不满足时**拒绝执行**而不是降级：
+
+| 动作 | 约束 |
+|---|---|
+| `enemy.spawn` / `coin.spawn` | 只能使用关卡预置的安全生成点，点被占用时返回失败 |
+| `platform.collapseAfter` | 只能作用于标记为 collapsible 的平台，`delayMs` 必须 250–5000 |
+| `platform.visibility.set` | 只能作用于 allowlist 中的平台 id，隐藏时碰撞体同步关闭 |
+| `player.shield.grant` | 1 层，持续 1000–10000ms，到时间自动解除 |
+| `checkpoint.activate` | 只能使用关卡预定义的 checkpoint id |
+
+**现在不存在「已注册但未实现」的动作**：有测试断言注册表数量与实现集合完全一致。
 
 ### 规则条件（RF-005）
 

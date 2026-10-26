@@ -117,6 +117,14 @@ export class Player {
     return this.gravityDirection;
   }
 
+  /** Visual shield state. The damage rule itself lives in the scene. */
+  setShielded(shielded: boolean): void {
+    this.sprite.setTint(shielded ? 0x9be7ff : 0xffffff);
+    if (!shielded) {
+      this.sprite.clearTint();
+    }
+  }
+
   /** Upward kick after stomping an enemy, relative to the current gravity. */
   bounce(): void {
     this.sprite.setVelocityY(PHYSICS.jumpVelocity * 0.55 * this.gravityDirection);

@@ -5,6 +5,7 @@ import { applyRulePack, clearRules, subscribeToRules } from "@/game/rules/ruleBr
 
 import gravityPreset from "@content/presets/preset-gravity-flip.json";
 import guardedPreset from "@content/presets/preset-guarded-gravity.json";
+import shieldPreset from "@content/presets/preset-shield-on-coin.json";
 import enemySlowPreset from "@content/presets/preset-enemy-slow.json";
 
 interface PresetEntry {
@@ -26,6 +27,12 @@ const PRESETS: PresetEntry[] = [
     name: guardedPreset.name,
     description: guardedPreset.description,
     pack: guardedPreset,
+  },
+  {
+    id: shieldPreset.id,
+    name: shieldPreset.name,
+    description: shieldPreset.description,
+    pack: shieldPreset,
   },
   {
     id: enemySlowPreset.id,

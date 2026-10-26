@@ -39,17 +39,19 @@ The player describes a rule in natural language. A server-side LLM returns contr
 
 ## Current milestone
 
-**RF-001 … RF-005 done.** Playable level, rule engine with condition evaluation.
+**RF-001 … RF-006 done.** Playable level, rule engine with conditions, and all
+twelve registered actions implemented.
 
-Rules are no longer trigger-only: `conditions` are evaluated with `all`/`any`
-groups, seven comparison operators, depth <= 2, and the DSL fact whitelist.
+Every action is real; there is no "registered but unimplemented" bucket any more,
+and a test asserts the implemented set equals `P0_ACTIONS`.
 
-Non-negotiable rules for this layer:
-- Event-scoped facts (`event.*`) are only readable while their own event is being
-  handled. Reading another event's fact must fail, not return undefined.
-- A condition that cannot be evaluated **blocks** the rule and increments
-  `conditionsBlocked`. Never treat an unknown fact as `false` — that silently
-  disables a rule the player wrote.
+Constraints that must survive future edits:
+- spawning uses level-authored safe points only, and fails when they are occupied
+- `platform.collapseAfter` only touches collapsible platforms; `delayMs` 250-5000
+- `platform.visibility.set` only addresses allowlisted ids, and collision follows
+  the visual
+- a condition that cannot be evaluated blocks the rule and is counted
+- event-scoped facts are readable only during their own event
 
 Quality gates that must stay green:
 
@@ -63,6 +65,7 @@ cd apps/api && uv run pytest -q && uv run ruff check .
 
 ## Next task
 
-**RF-006**: the remaining six registered actions (`enemy.spawn`, `coin.spawn`,
-`platform.visibility.set`, `platform.collapseAfter`, `player.shield.grant`,
-`checkpoint.activate`), then the server-side compiler.
+**RF-007: the server-side compiler.** The client can execute validated rules, but
+rules are still hand-written JSON. The product promise — one sentence in, a
+validated DSL pack out — has no pipeline yet: Prompt -> Rule IR -> compile ->
+validate -> RulePack.

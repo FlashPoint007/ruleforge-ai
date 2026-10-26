@@ -1,0 +1,31 @@
+{
+  "id": "preset-shield-on-coin",
+  "name": "拾金得盾",
+  "description": "每收集 3 枚金币获得一次护盾，护盾可抵挡一次伤害，持续 6 秒。",
+  "dslVersion": "1.1.0",
+  "levelId": "lab-01",
+  "rules": [
+    {
+      "id": "rule-shield",
+      "trigger": {
+        "event": "coin.collected"
+      },
+      "conditions": [
+        {
+          "op": "modEq",
+          "fact": "player.coinCount",
+          "value": 3
+        }
+      ],
+      "actions": [
+        {
+          "op": "player.shield.grant",
+          "target": "player",
+          "params": {
+            "durationMs": 6000
+          }
+        }
+      ]
+    }
+  ]
+}
