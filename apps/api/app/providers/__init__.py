@@ -1,5 +1,8 @@
 """LLM provider boundary.
 
+Providers are constructed through get_provider(); the deepseek implementation
+lives in app/providers/deepseek.py.
+
 The model only ever returns controlled Rule IR. It never returns executable
 code, and nothing here may be executed by the server.
 """
@@ -7,6 +10,9 @@ code, and nothing here may be executed by the server.
 import json
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
+
+from app.core.config import get_settings
+from app.providers.deepseek import DeepSeekLLMProvider
 
 
 @runtime_checkable
@@ -80,26 +86,24 @@ def _default_fixtures_dir() -> Path:
     return Path("tests/fixtures")
 
 
-class DeepSeekLLMProvider:
-    """Placeholder for the real DeepSeek integration (RF-001 scope boundary).
-
-    Implementing this provider belongs to the M3 milestone. It is declared here
-    so the factory has an honest, explicit failure instead of a silent fallback.
-    """
-
-    name = "deepseek"
-
-    async def generate(self, prompt: str, *, level_id: str, locale: str) -> dict[str, Any]:
-        raise NotImplementedError(
-            "DeepSeek provider is not implemented yet (milestone M3). "
-            "Use LLM_PROVIDER=mock for now."
-        )
-
-
 def get_provider(name: str) -> LLMProvider:
+    """Builds the configured provider.
+
+    "deepseek" needs a real key; failing loudly here is better than falling back
+    to mock and letting the player believe a model answered them.
+    """
     normalized = name.strip().lower()
+
     if normalized == "mock":
         return MockLLMProvider()
+
     if normalized == "deepseek":
-        return DeepSeekLLMProvider()
+        settings = get_settings()
+        return DeepSeekLLMProvider(
+            api_key=settings.deepseek_api_key,
+            base_url=settings.deepseek_base_url,
+            model=settings.deepseek_model,
+            timeout_seconds=float(settings.rule_generation_timeout_seconds),
+        )
+
     raise ValueError(f"Unknown LLM provider: {name!r}. Expected 'mock' or 'deepseek'.")

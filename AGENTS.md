@@ -39,37 +39,41 @@ The player describes a rule in natural language. A server-side LLM returns contr
 
 ## Current milestone
 
-**RF-001 … RF-007 done, plus a defect pass.** The full promise chain works with the
-mock provider: prompt -> Rule IR -> compiler -> five validation layers -> RulePack
+**RF-001 … RF-008 done.** The promise chain is verified against the real model:
+prompt -> DeepSeek -> Rule IR -> compiler -> five validation layers -> RulePack
 -> client.
 
-Platform physics rule, learned the hard way: **platform collision is a thin
-one-way top strip, not a full block.** A full-height body turns a platform's side
-into a wall, and a jump that arrives a pixel past the lip is silently stopped and
-drops the player into the gap. Do not "fix" this back to a full box.
+Providers:
+- `mock` (default) reads tests/fixtures by keyword and needs no key
+- `deepseek` calls the real API; `app/providers/deepseek.py` owns the network and
+  nothing else. Per spec 5.3/5.5: `response_format=json_object`, `finish_reason`
+  checked, 25s timeout, exactly one bounded retry, and **no retry on 4xx** (a 401
+  will never succeed).
+- json_object guarantees syntax only; every response still goes through all five
+  compiler layers.
 
-Other invariants worth keeping:
-- a stomp requires the player to be above the enemy, not merely near it
-- running out of lives restarts the level deliberately; never silently top the
-  counter back up mid-respawn
-- rule reverts restore the state the level authored, never the inverse of the
-  rule's parameter
-- `tests/test_contract.py` keeps the server registry in lockstep with
-  packages/rule-schema. If it fails, the two lists drifted.
+Test hermeticity (learned the hard way): `tests/conftest.py` points
+`Settings.model_config["env_file"]` at a nonexistent file and clears the settings
+cache. Environment variables alone are NOT enough, because pydantic-settings reads
+the .env file directly — a developer's real key would otherwise leak into the
+suite and make ordinary tests call the network.
+
+Secrets: the API key lives only in `apps/api/.env`, which is gitignored. Never
+write a key into a tracked file, a fixture, or a test.
 
 Quality gates that must stay green:
 
 ```bash
 pnpm --filter @ruleforge/web typecheck && pnpm --filter @ruleforge/web lint
-pnpm --filter @ruleforge/web test          # includes the cross-language contract
+pnpm --filter @ruleforge/web test
 pnpm --filter @ruleforge/web build
-pnpm run test:e2e                          # generation tests skip if API is down
+pnpm run test:e2e
 cd apps/api && uv run pytest -q && uv run ruff check .
 ```
 
+Live model test is opt-in: `RULEFORGE_LIVE_TESTS=1 uv run pytest -q`.
+
 ## Next task
 
-**RF-008: the real DeepSeek provider.** Everything else is in place;
-`DeepSeekLLMProvider` still raises NotImplementedError. Implement it per spec
-5.3/5.5 (json_object, finish_reason check, 25s timeout, one bounded retry) behind
-`LLM_PROVIDER=deepseek`, keeping mock as the default.
+**RF-009: persistence and immutable challenge links.** Rules and challenges are
+still in-memory; the SQLite repository layer and `/challenges` endpoints are next.

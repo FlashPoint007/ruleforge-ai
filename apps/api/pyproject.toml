@@ -9,6 +9,7 @@ dependencies = [
     "uvicorn[standard]>=0.32,<1.0",
     "pydantic>=2.9,<3.0",
     "pydantic-settings>=2.6,<3.0",
+    "httpx>=0.28.1",
 ]
 
 [dependency-groups]
@@ -16,6 +17,7 @@ dev = [
     "pytest>=8.3,<9.0",
     "httpx>=0.27,<1.0",
     "ruff>=0.7,<1.0",
+    "pytest-asyncio>=1.4.1",
 ]
 
 [build-system]
@@ -35,3 +37,6 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+# The provider tests are async; auto mode keeps them plain `async def` tests
+# instead of decorating every one.
+asyncio_mode = "auto"

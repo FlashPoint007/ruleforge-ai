@@ -3,7 +3,7 @@
 > 用一句自然语言描述一条规则，得到一个经过确定性编译、可验证、可回放的关卡玩法。
 > Describe a rule in plain language — get a deterministic, validated, replayable game rule.
 
-**当前状态：M3 起步（RF-007）。一句话 → 服务端编译 → 客户端执行，整条链路已打通（mock provider，未接真实模型）。**
+**当前状态：M3 完成（RF-008）。一句话 → 真实 DeepSeek 编译 → 五层校验 → 客户端执行，整条链路已用真实模型验证。**
 本项目处于开发早期，README 只描述**已经可以运行**的东西，不描述计划中的能力。
 
 ---
@@ -86,8 +86,33 @@ Prompt → LLMProvider(mock) → Rule IR → 编译器 → 五层校验 → Rule
 
 **只有非空且全部通过校验的包才会返回 `ready`。**
 
-默认 `LLM_PROVIDER=mock`：Mock provider 从 `tests/fixtures/` 按关键词挑选固定 IR，
-所以整条流水线在**没有任何 API Key** 的情况下也能演示与测试。接真实模型只是换一个 provider。
+### Provider 切换
+
+| `LLM_PROVIDER` | 行为 |
+|---|---|
+| `mock`（默认） | 从 `tests/fixtures/` 按关键词返回固定 IR，**不需要任何 Key** |
+| `deepseek` | 调用真实 DeepSeek API（`deepseek-flash`），需要 `DEEPSEEK_API_KEY` |
+
+接真实模型只需改环境变量，编译器和校验器完全不变 —— 它们对 provider 无感知。
+
+**配置真实模型**：把 `apps/api/.env` 里设成
+
+```dotenv
+LLM_PROVIDER=deepseek
+DEEPSEEK_API_KEY=sk-...
+```
+
+`.env` 已被 `.gitignore` 排除，密钥永远不进仓库。
+
+### 真实模型实测
+
+| 输入 | 结果 |
+|---|---|
+| 每跳一次，重力反转 | `player.gravity.toggle`，编译器补 `magnitude: 980` |
+| 捡到金币后敌人减速 30% 持续 5 秒 | `enemy.speed.multiply`（factor 0.7, durationMs 5000） |
+| 收集 3 个金币后跳跃高度 1.5 倍 | `player.jump.scale` + 条件 `gte player.coinCount 3` |
+| 踩到会坍塌的平台后 2 秒消失 | `platform.collapseAfter` |
+| 让我飞起来去月球 | `unsupported`（正确拒绝，不编造动作） |
 
 ### 规则条件（RF-005）
 

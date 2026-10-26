@@ -16,10 +16,15 @@ def test_provider_lookup_is_case_insensitive():
     assert isinstance(get_provider(" MOCK "), MockLLMProvider)
 
 
-def test_deepseek_provider_is_declared_but_not_implemented():
-    provider = get_provider("deepseek")
+def test_deepseek_provider_is_constructible_with_a_key(monkeypatch):
+    # The provider is real now; with a key it must build without touching the
+    # network (construction alone performs no I/O).
+    from app.providers import deepseek as deepseek_module
+
+    provider = deepseek_module.DeepSeekLLMProvider(api_key="sk-test")
 
     assert isinstance(provider, DeepSeekLLMProvider)
+    assert provider.name == "deepseek"
 
 
 def test_mock_provider_is_deterministic_and_offline():
@@ -54,11 +59,11 @@ def test_mock_provider_never_leaks_fixture_metadata_into_the_ir():
     assert "keywords" not in document
 
 
-def test_deepseek_provider_fails_loudly():
-    provider = get_provider("deepseek")
-
-    with pytest.raises(NotImplementedError):
-        asyncio.run(provider.generate("anything", level_id="lab-01", locale="zh-CN"))
+def test_deepseek_without_a_key_is_refused_at_construction():
+    # conftest removes DEEPSEEK_API_KEY, so building the provider must fail
+    # loudly rather than silently degrading to mock.
+    with pytest.raises(ValueError):
+        get_provider("deepseek")
 
 
 def test_unknown_provider_is_rejected():
