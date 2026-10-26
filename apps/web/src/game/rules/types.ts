@@ -1,4 +1,4 @@
-import type { P0ActionOp, RulePack } from "@ruleforge/rule-schema";
+import type { P0ActionOp } from "@ruleforge/rule-schema";
 
 import type { FactValue } from "@/game/rules/conditions";
 
@@ -77,6 +77,11 @@ export interface EffectContext {
   getCollapsiblePlatforms: () => ReadonlyArray<{ collapseNow: (delayMs: number) => void }>;
   /** Platforms the level marked hideable, addressed by allowlist id. */
   setPlatformVisible: (platformId: string, visible: boolean) => boolean;
+  /**
+   * Current visibility of a hideable platform, or undefined if the id is not
+   * hideable. Reverts need the real prior state, not the inverse of the rule.
+   */
+  isPlatformVisible: (platformId: string) => boolean | undefined;
 
   /** Grants one shield layer for the given duration. */
   grantShield: (durationMs: number) => void;
@@ -113,9 +118,4 @@ export interface RulesChangedPayload {
   packId: string | null;
   error: string | null;
   stats: RuleRuntimeStats;
-}
-
-export interface RuntimePackState {
-  pack: RulePack | null;
-  error: string | null;
 }

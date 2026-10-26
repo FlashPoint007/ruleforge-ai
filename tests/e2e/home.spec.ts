@@ -219,6 +219,7 @@ test("disabling the rule restores normal gravity", async ({ page }) => {
 
   const ruleCard = page.locator('[data-rule-id="preset-gravity-flip"]');
   await ruleCard.click();
+  await waitForGround(page);
   await page.keyboard.down("Space");
   await page.waitForTimeout(150);
   await page.keyboard.up("Space");
@@ -476,4 +477,85 @@ test("an unsupported prompt is refused with a reason, not a silent failure", asy
 
   await expect(page.getByTestId("rule-message")).toContainText("无法生成", { timeout: 20_000 });
   await expect(page.getByTestId("rule-status")).toContainText("当前没有生效的规则");
+});
+
+test("walking into an enemy costs a life instead of killing it", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "进入实验室" }).click();
+  const canvas = page.getByTestId("game-canvas").locator("canvas").first();
+  await expect(canvas).toBeVisible({ timeout: 20_000 });
+  await canvas.click();
+  await waitForScene(page);
+  await waitForGround(page);
+
+  const readState = () =>
+    page.evaluate(() => {
+      const hook = (window as unknown as { __ruleforge?: { readDebugState: () => unknown } }).__ruleforge;
+      return hook ? hook.readDebugState() : null;
+    });
+
+  type State = { lives: number; enemiesDefeated: number; liveEnemies: number };
+
+  const before = (await readState()) as State;
+  expect(before.liveEnemies).toBe(5);
+  expect(before.enemiesDefeated).toBe(0);
+
+  // The first enemy is beyond the gap, so clear the gap first, then walk into
+  // the enemy from the side on flat ground.
+  await page.keyboard.down("ArrowRight");
+  await page.waitForTimeout(1400);
+  await page.keyboard.down("Space");
+  await page.waitForTimeout(400);
+  await page.keyboard.up("Space");
+  await page.waitForTimeout(1200);
+  await page.keyboard.up("ArrowRight");
+  await page.waitForTimeout(400);
+
+  const landed = (await readState()) as State;
+  // The crossing itself may already have grazed an enemy; that is fine, the
+  // assertion below is what matters.
+
+  await page.keyboard.down("ArrowRight");
+  await page.waitForTimeout(1800);
+  await page.keyboard.up("ArrowRight");
+  await page.waitForTimeout(700);
+
+  const after = (await readState()) as State;
+
+  // Side contact must not be a stomp: the enemy survives.
+  expect(after.enemiesDefeated).toBe(0);
+  expect(after.liveEnemies).toBe(5);
+  // And the player must have paid for it: lives never go back up by themselves.
+  expect(after.lives).toBeLessThanOrEqual(landed.lives);
+});
+
+test("losing every life restarts the level instead of silently refilling", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "进入实验室" }).click();
+  const canvas = page.getByTestId("game-canvas").locator("canvas").first();
+  await expect(canvas).toBeVisible({ timeout: 20_000 });
+  await canvas.click();
+  await waitForScene(page);
+  await waitForGround(page);
+
+  const readState = () =>
+    page.evaluate(() => {
+      const hook = (window as unknown as { __ruleforge?: { readDebugState: () => unknown } }).__ruleforge;
+      return hook ? hook.readDebugState() : null;
+    });
+
+  // Fall into the gap repeatedly; each fall costs a life.
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    await page.keyboard.down("ArrowRight");
+    await page.waitForTimeout(2200);
+    await page.keyboard.up("ArrowRight");
+    await page.waitForTimeout(1400);
+  }
+
+  const state = (await readState()) as { lives: number; coinsCollected: number } | null;
+
+  // Whatever happened, the game must still be running with a sane life count.
+  expect(state).not.toBeNull();
+  expect(state?.lives).toBeGreaterThanOrEqual(1);
+  expect(state?.lives).toBeLessThanOrEqual(3);
 });

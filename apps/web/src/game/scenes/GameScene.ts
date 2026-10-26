@@ -87,6 +87,7 @@ export class GameScene extends Phaser.Scene {
 
       getCollapsiblePlatforms: () => this.crumbling,
       setPlatformVisible: (id, visible) => this.setPlatformVisible(id, visible),
+      isPlatformVisible: (id) => this.hideablePlatforms.get(id)?.isVisible,
 
       grantShield: (durationMs) => this.grantShield(durationMs),
       activateCheckpoint: (id) => this.activateCheckpoint(id),
@@ -461,11 +462,18 @@ export class GameScene extends Phaser.Scene {
     const playerBody = this.player.sprite.body as Phaser.Physics.Arcade.Body;
     // Stomping is allowed: landing on an enemy from above defeats it. Any other
     // contact costs a life. Without this, enemies are pure punishment.
-    if (playerBody.velocity.y * this.player.getGravityDirection() > 0) {
-      const enemy = this.enemies.find(
-        (candidate) =>
-          candidate.isAlive && Math.abs(candidate.x - this.player.sprite.x) < 46,
-      );
+    const stomping = playerBody.velocity.y * this.player.getGravityDirection() > 0;
+    if (stomping) {
+      // A stomp needs the player to be above the enemy, not merely near it:
+      // killing whatever is horizontally close made side contact harmless.
+      const enemy = this.enemies.find((candidate) => {
+        if (!candidate.isAlive) {
+          return false;
+        }
+        const dx = Math.abs(candidate.x - this.player.sprite.x);
+        const dy = (candidate.y - this.player.sprite.y) * this.player.getGravityDirection();
+        return dx < 46 && dy > 0 && dy < 60;
+      });
       if (enemy) {
         enemy.kill();
         this.enemiesDefeated += 1;
@@ -477,12 +485,50 @@ export class GameScene extends Phaser.Scene {
 
     this.lives = Math.max(0, this.lives - 1);
     this.runtime.emit("player.damage", this.simulationNow());
-    this.respawn(true);
+
     if (this.lives === 0) {
-      this.lives = 3;
-      this.coinsCollected = 0;
-      this.enemiesDefeated = 0;
+      // Out of lives: restart the level deliberately rather than silently
+      // topping the counter back up mid-respawn, which hid the game-over.
+      this.restartLevel();
+      return;
     }
+
+    this.respawn(true);
+  }
+
+  /**
+   * Restarts the level state.
+   *
+   * Every piece of run state is reset together — rules, counters, platforms,
+   * enemies, gravity — because leaving any one of them behind produces a
+   * half-restarted level that is worse than either state.
+   */
+  private restartLevel(): void {
+    this.lives = 3;
+    this.coinsCollected = 0;
+    this.enemiesDefeated = 0;
+    this.hasReachedGoal = false;
+    this.shieldUntil = 0;
+    this.checkpoint = { ...this.level.spawn };
+    this.player.setShielded(false);
+
+    this.runtime.unload();
+    this.lastPackId = null;
+    this.lastPackError = null;
+    this.lastStatsSignature = "";
+    this.broadcastRules();
+
+    for (const coin of this.coins) {
+      coin.reset();
+    }
+    for (const enemy of this.enemies) {
+      enemy.revive();
+    }
+    for (const platform of this.crumbling) {
+      platform.reset();
+    }
+
+    this.respawn(false);
   }
 
   private buildPlatforms(): void {

@@ -5,7 +5,7 @@ compiler turns it into a complete, versioned RulePack. Only the compiled pack is
 executable by the client.
 """
 
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -150,8 +150,3 @@ class LevelCapabilities(BaseModel):
     checkpoints: list[str] = Field(default_factory=list)
     enemySpawnPoints: int = 0
     coinSpawnPoints: int = 0
-
-
-def dump_json(model: BaseModel) -> dict[str, Any]:
-    """Serialize for the wire, keeping camelCase field names."""
-    return model.model_dump(mode="json")

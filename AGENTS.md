@@ -39,28 +39,29 @@ The player describes a rule in natural language. A server-side LLM returns contr
 
 ## Current milestone
 
-**RF-001 … RF-007 done.** The full promise chain works with the mock provider:
-prompt -> Rule IR -> compiler -> five validation layers -> RulePack -> client.
+**RF-001 … RF-007 done, plus a defect pass.** The full promise chain works with the
+mock provider: prompt -> Rule IR -> compiler -> five validation layers -> RulePack
+-> client.
 
-Server (apps/api):
-- `app/domain/registry.py` mirrors packages/rule-schema. It must stay in lockstep
-  with the TS registry; `tests/test_contract.py` asserts that.
-- `app/compiler/validators.py` holds the five layers, each independently reportable.
-  A later layer never runs once an earlier one failed.
-- `app/compiler/compiler.py` fills ids/targets/defaults and hashes the content into
-  a stable packId. It knows nothing about providers.
-- Only a non-empty, fully valid pack may be returned as `ready`.
+Platform physics rule, learned the hard way: **platform collision is a thin
+one-way top strip, not a full block.** A full-height body turns a platform's side
+into a wall, and a jump that arrives a pixel past the lip is silently stopped and
+drops the player into the gap. Do not "fix" this back to a full box.
 
-Cross-language guarantee: `tests/test_generate_api.py` writes golden packs to
-`tests/golden/`, and `apps/web/src/test/contract.test.ts` loads and *executes*
-them. A server that emits something the client cannot run fails in CI, not in
-the browser.
+Other invariants worth keeping:
+- a stomp requires the player to be above the enemy, not merely near it
+- running out of lives restarts the level deliberately; never silently top the
+  counter back up mid-respawn
+- rule reverts restore the state the level authored, never the inverse of the
+  rule's parameter
+- `tests/test_contract.py` keeps the server registry in lockstep with
+  packages/rule-schema. If it fails, the two lists drifted.
 
 Quality gates that must stay green:
 
 ```bash
 pnpm --filter @ruleforge/web typecheck && pnpm --filter @ruleforge/web lint
-pnpm --filter @ruleforge/web test          # includes the contract test
+pnpm --filter @ruleforge/web test          # includes the cross-language contract
 pnpm --filter @ruleforge/web build
 pnpm run test:e2e                          # generation tests skip if API is down
 cd apps/api && uv run pytest -q && uv run ruff check .
@@ -68,7 +69,7 @@ cd apps/api && uv run pytest -q && uv run ruff check .
 
 ## Next task
 
-**RF-008: the real DeepSeek provider.** The pipeline is complete and provider
-agnostic; `DeepSeekLLMProvider` still raises NotImplementedError. Implement it
-with the spec's 5.3/5.5 rules (json_object, finish_reason checks, one bounded
-retry, timeout 25s) and keep it behind `LLM_PROVIDER=deepseek`.
+**RF-008: the real DeepSeek provider.** Everything else is in place;
+`DeepSeekLLMProvider` still raises NotImplementedError. Implement it per spec
+5.3/5.5 (json_object, finish_reason check, 25s timeout, one bounded retry) behind
+`LLM_PROVIDER=deepseek`, keeping mock as the default.

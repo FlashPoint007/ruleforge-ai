@@ -88,6 +88,7 @@ function makeContext() {
       hiddenCalls.push({ id, visible });
       return id === "bridge-1";
     },
+    isPlatformVisible: (id) => (id === "bridge-1" ? true : undefined),
     grantShield: (durationMs) => {
       shield = durationMs;
     },
@@ -247,6 +248,7 @@ describe("RuleRuntime", () => {
       spawnCoin: () => false,
       getCollapsiblePlatforms: () => [],
       setPlatformVisible: () => false,
+      isPlatformVisible: () => undefined,
       grantShield: () => undefined,
       activateCheckpoint: () => false,
       getCheckpointIds: () => [],
@@ -592,6 +594,67 @@ describe("RuleRuntime RF-006 actions", () => {
       { id: "bridge-1", visible: false },
       { id: "bridge-1", visible: true },
     ]);
+  });
+
+  it("restores the level's authored visibility, not the inverse of the rule", () => {
+    // bridge-1 starts visible. A rule hides it; on reset it must be visible
+    // again because that is what the level authored — inverting the rule's
+    // parameter would leave it hidden.
+    const harness = makeContext();
+    const runtime = loadRule(harness, {
+      op: "platform.visibility.set",
+      target: "platform",
+      params: { platformId: "bridge-1", visible: false },
+    });
+
+    runtime.emit("level.start", 0);
+    runtime.tick(0);
+    runtime.reset();
+
+    const [, restore] = harness.hiddenCalls;
+    expect(restore).toEqual({ id: "bridge-1", visible: true });
+  });
+
+  it("unwinds two rules touching one platform back to the original state", () => {
+    const harness = makeContext();
+    const runtime = new RuleRuntime(harness.context);
+    runtime.load({
+      ...gravityPack,
+      rules: [
+        {
+          id: "rule-hide",
+          trigger: { event: "level.start" },
+          conditions: [],
+          actions: [
+            {
+              op: "platform.visibility.set",
+              target: "platform",
+              params: { platformId: "bridge-1", visible: false },
+            },
+          ],
+        },
+        {
+          id: "rule-show",
+          trigger: { event: "level.start" },
+          conditions: [],
+          actions: [
+            {
+              op: "platform.visibility.set",
+              target: "platform",
+              params: { platformId: "bridge-1", visible: true },
+            },
+          ],
+        },
+      ],
+    });
+
+    runtime.emit("level.start", 0);
+    runtime.tick(0);
+    runtime.reset();
+
+    // Both reverts target the authored state, so the final call must be visible.
+    const last = harness.hiddenCalls[harness.hiddenCalls.length - 1];
+    expect(last).toEqual({ id: "bridge-1", visible: true });
   });
 
   it("rejects a platform id the level does not define", () => {

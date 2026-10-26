@@ -12,7 +12,6 @@ from app.domain.models import (
     ConditionNode,
     LevelCapabilities,
     Rule,
-    RuleAction,
     ValidationReport,
 )
 from app.domain.registry import (
@@ -341,7 +340,3 @@ def validate_level_compatibility(
 
     report.levelCompatible = ok
     return ok
-
-
-def action_is_known(action: RuleAction) -> bool:
-    return action.op in ACTION_SET

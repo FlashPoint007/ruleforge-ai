@@ -362,15 +362,19 @@ export class RuleRuntime {
       case "platform.visibility.set": {
         const platformId = String(action.params["platformId"] ?? "");
         const visible = action.params["visible"] === true;
-        if (!this.context.setPlatformVisible(platformId, visible)) {
+        const previous = this.context.isPlatformVisible(platformId);
+        if (previous === undefined) {
           throw new RulePackError(`platform "${platformId}" is not a hideable platform in this level`);
         }
+        this.context.setPlatformVisible(platformId, visible);
         return {
           ruleId,
           op: action.op,
           expiresAtMs: duration === null ? null : atMs + duration,
+          // Restore the state the level authored, not the inverse of the rule:
+          // two rules touching one platform must unwind to the original.
           revert: () => {
-            this.context.setPlatformVisible(platformId, !visible);
+            this.context.setPlatformVisible(platformId, previous);
           },
         };
       }

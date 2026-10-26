@@ -55,6 +55,7 @@ function makeContext() {
     spawnCoin: () => false,
     getCollapsiblePlatforms: () => [],
     setPlatformVisible: () => false,
+    isPlatformVisible: () => undefined,
     grantShield: () => undefined,
     activateCheckpoint: () => false,
     getCheckpointIds: () => [],
