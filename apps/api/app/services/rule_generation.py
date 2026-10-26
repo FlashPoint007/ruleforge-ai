@@ -12,6 +12,7 @@ from app.domain.models import (
     ValidationReport,
 )
 from app.providers import LLMProvider
+from app.repositories.interfaces import RulePackRepository
 
 SUPPORTED_LEVELS: dict[str, LevelCapabilities] = {
     "lab-01": LevelCapabilities(
@@ -37,9 +38,16 @@ class UnknownLevelError(Exception):
 
 
 class RuleGenerationService:
-    def __init__(self, provider: LLMProvider, compiler: RuleCompiler | None = None) -> None:
+    def __init__(
+        self,
+        provider: LLMProvider,
+        compiler: RuleCompiler | None = None,
+        packs: RulePackRepository | None = None,
+    ) -> None:
         self._provider = provider
         self._compiler = compiler or RuleCompiler()
+        # Optional so unit tests and the mock path keep working without storage.
+        self._packs = packs
 
     @staticmethod
     def levels() -> list[LevelCapabilities]:
@@ -52,7 +60,14 @@ class RuleGenerationService:
         return capabilities
 
     async def generate(
-        self, *, request_id: str, prompt: str, level_id: str, locale: str, seed: int = 0
+        self,
+        *,
+        request_id: str,
+        prompt: str,
+        level_id: str,
+        locale: str,
+        seed: int = 0,
+        owner_id: str = "anonymous",
     ) -> GenerateRuleResponse:
         level = self.level(level_id)
 
@@ -74,6 +89,17 @@ class RuleGenerationService:
         result: CompileResult = self._compiler.compile(document, level=level, seed=seed)
 
         if result.ok and result.pack is not None:
+            # Persist before returning: a challenge can only reference a pack the
+            # server actually holds, and the client cannot store it itself.
+            if self._packs is not None:
+                from datetime import UTC, datetime
+
+                self._packs.save_pack(
+                    result.pack,
+                    owner_id=owner_id,
+                    created_at=datetime.now(UTC).isoformat(timespec="seconds"),
+                )
+
             return GenerateRuleResponse(
                 requestId=request_id,
                 status="ready",

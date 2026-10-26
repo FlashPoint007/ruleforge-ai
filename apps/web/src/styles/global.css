@@ -298,6 +298,34 @@ body {
   line-height: 1.6;
 }
 
+.rule-share {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.button--ghost {
+  background: transparent;
+  border: 1px solid rgba(97, 205, 244, 0.45);
+  color: var(--tech-cyan);
+}
+
+.button--ghost:hover {
+  background: rgba(97, 205, 244, 0.12);
+}
+
+.rule-share__url {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(2, 6, 23, 0.7);
+  border: 1px solid var(--border);
+  color: var(--starlight);
+  word-break: break-all;
+}
+
 .rule-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

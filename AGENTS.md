@@ -39,27 +39,25 @@ The player describes a rule in natural language. A server-side LLM returns contr
 
 ## Current milestone
 
-**RF-001 … RF-008 done.** The promise chain is verified against the real model:
-prompt -> DeepSeek -> Rule IR -> compiler -> five validation layers -> RulePack
--> client.
+**RF-001 … RF-009 done.** Prompt -> DeepSeek -> IR -> compiler -> five validation
+layers -> RulePack -> client, with SQLite persistence and immutable share links.
 
-Providers:
-- `mock` (default) reads tests/fixtures by keyword and needs no key
-- `deepseek` calls the real API; `app/providers/deepseek.py` owns the network and
-  nothing else. Per spec 5.3/5.5: `response_format=json_object`, `finish_reason`
-  checked, 25s timeout, exactly one bounded retry, and **no retry on 4xx** (a 401
-  will never succeed).
-- json_object guarantees syntax only; every response still goes through all five
-  compiler layers.
+Persistence invariants:
+- immutability is enforced by the schema (unique pack_id + INSERT OR IGNORE), not
+  by convention: a pack id can never be overwritten with different content
+- a challenge freezes dsl/engine/level versions and seed, so old links keep
+  replaying the rule they were created with
+- `generation_requests` has **no column for prompt text** — only length and hash.
+  Never add one.
+- `/rules/generate` persists the pack it returns. If it did not, `/challenges`
+  would 404 for a rule the client was just handed.
 
-Test hermeticity (learned the hard way): `tests/conftest.py` points
-`Settings.model_config["env_file"]` at a nonexistent file and clears the settings
-cache. Environment variables alone are NOT enough, because pydantic-settings reads
-the .env file directly — a developer's real key would otherwise leak into the
-suite and make ordinary tests call the network.
+Wiring rule: routes must take dependencies as `Annotated[..., Depends(...)]`
+parameters. Calling a `get_*()` factory directly inside a route bypasses
+`dependency_overrides`, which silently breaks both tests and the real wiring.
 
-Secrets: the API key lives only in `apps/api/.env`, which is gitignored. Never
-write a key into a tracked file, a fixture, or a test.
+Identity: the anonymous id is a server-issued httponly cookie, minted on first
+contact with any endpoint. A client-supplied user id is never an identity claim.
 
 Quality gates that must stay green:
 
@@ -71,9 +69,8 @@ pnpm run test:e2e
 cd apps/api && uv run pytest -q && uv run ruff check .
 ```
 
-Live model test is opt-in: `RULEFORGE_LIVE_TESTS=1 uv run pytest -q`.
-
 ## Next task
 
-**RF-009: persistence and immutable challenge links.** Rules and challenges are
-still in-memory; the SQLite repository layer and `/challenges` endpoints are next.
+**RF-010: playing a shared challenge.** `GET /challenges/{id}` returns a frozen
+pack, but the client cannot yet open `/c/{challengeId}` and play it. That closes
+the share loop end to end.

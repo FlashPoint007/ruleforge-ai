@@ -3,7 +3,7 @@
 > 用一句自然语言描述一条规则，得到一个经过确定性编译、可验证、可回放的关卡玩法。
 > Describe a rule in plain language — get a deterministic, validated, replayable game rule.
 
-**当前状态：M3 完成（RF-008）。一句话 → 真实 DeepSeek 编译 → 五层校验 → 客户端执行，整条链路已用真实模型验证。**
+**当前状态：M4 起步（RF-009）。一句话 → 真实 DeepSeek 编译 → 五层校验 → 客户端执行 → 保存并分享不可变挑战链接。**
 本项目处于开发早期，README 只描述**已经可以运行**的东西，不描述计划中的能力。
 
 ---
@@ -85,6 +85,33 @@ Prompt → LLMProvider(mock) → Rule IR → 编译器 → 五层校验 → Rule
 | level | 关卡是否真的支持该动作（有敌人？有可坍塌平台？平台 id 存在？） |
 
 **只有非空且全部通过校验的包才会返回 `ready`。**
+
+### 持久化与分享链接（RF-009）
+
+编译出的规则会保存到 SQLite（`apps/api/data/ruleforge.db`），并可以生成分享链接：
+
+```bash
+# 生成规则（服务端自动保存 pack）
+curl -X POST http://127.0.0.1:8000/api/v1/rules/generate \
+  -H 'Content-Type: application/json' \
+  -d '{"requestId":"r1","prompt":"每跳一次，重力反转","levelId":"lab-01","locale":"zh-CN","existingPackId":null,"dslVersion":"1.1.0"}'
+
+# 用返回的 packId 创建挑战
+curl -X POST http://127.0.0.1:8000/api/v1/challenges \
+  -H 'Content-Type: application/json' -d '{"packId":"pack-...","visibility":"public"}'
+
+# 读取
+curl http://127.0.0.1:8000/api/v1/challenges/{challengeId}
+```
+
+**不可变性靠 schema 保证，不靠约定：**
+
+- `content_hash` 是内容的 SHA-256；同一份规则永远哈希相同
+- `INSERT OR IGNORE` + 主键：同一个 `pack_id` **不可能**被不同内容覆盖
+- 挑战冻结 `dslVersion` / `engineVersion` / `levelVersion` / `seed`，旧链接永远重放创建时的规则
+
+**隐私：** `generation_requests` 表里**没有存放 prompt 原文的字段**，只有长度和哈希。
+日志不该变成玩家输入的副本。
 
 ### Provider 切换
 

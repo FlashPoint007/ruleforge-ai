@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { generateRule } from "@/api/generate";
+import { generateRule, saveChallenge } from "@/api/generate";
 import type { RuleRuntimeStats } from "@/game/rules/types";
 import { applyRulePack, clearRules, subscribeToRules } from "@/game/rules/ruleBridge";
 
@@ -67,6 +67,9 @@ export function RulePanel() {
   const [prompt, setPrompt] = useState("");
   const [busy, setBusy] = useState(false);
   const [serverMessage, setServerMessage] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [lastPackId, setLastPackId] = useState<string | null>(null);
 
   useEffect(() => subscribeToRules((payload) => {
     setActiveId(payload.packId);
@@ -113,6 +116,8 @@ export function RulePanel() {
         setServerMessage("规则已生成，但实验室还没启动，先点「进入实验室」。");
         return;
       }
+      setLastPackId(body.rulePack.packId);
+      setShareUrl(null);
       setServerMessage(`已生成并启用：${body.explanation || "规则已生效"}`);
       return;
     }
@@ -125,6 +130,23 @@ export function RulePanel() {
     const firstError = body.validation.errors[0] ?? "未知原因";
     setServerMessage(`规则被拒绝：${firstError}`);
   }, [busy, prompt]);
+
+  const share = useCallback(async () => {
+    if (!lastPackId || saving) {
+      return;
+    }
+
+    setSaving(true);
+    const result = await saveChallenge(lastPackId);
+    setSaving(false);
+
+    if (!result.ok) {
+      setServerMessage(`分享链接创建失败：${result.reason}`);
+      return;
+    }
+
+    setShareUrl(`${window.location.origin}${result.body.url}`);
+  }, [lastPackId, saving]);
 
   const statusLine = useMemo(() => {
     if (unavailable) {
@@ -182,6 +204,24 @@ export function RulePanel() {
         <p className="rule-message" data-testid="rule-message">
           {serverMessage}
         </p>
+      ) : null}
+
+      {lastPackId ? (
+        <div className="rule-share">
+          <button
+            type="button"
+            className="button button--ghost"
+            onClick={() => void share()}
+            disabled={saving}
+          >
+            {saving ? "创建中…" : "创建分享链接"}
+          </button>
+          {shareUrl ? (
+            <code className="rule-share__url" data-testid="share-url">
+              {shareUrl}
+            </code>
+          ) : null}
+        </div>
       ) : null}
 
       <div className="rule-cards">

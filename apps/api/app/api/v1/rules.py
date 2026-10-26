@@ -7,6 +7,7 @@ happens in RuleGenerationService.
 from fastapi import APIRouter, HTTPException
 
 from app.core.config import get_settings
+from app.core.deps import AnonymousId, PackRepositoryDep
 from app.domain.models import GenerateRuleRequest, GenerateRuleResponse
 from app.providers import get_provider
 from app.services import RuleGenerationService, UnknownLevelError
@@ -15,7 +16,11 @@ router = APIRouter(tags=["rules"])
 
 
 @router.post("/rules/generate", response_model=GenerateRuleResponse)
-async def generate_rule(request: GenerateRuleRequest) -> GenerateRuleResponse:
+async def generate_rule(
+    request: GenerateRuleRequest,
+    owner_id: AnonymousId,
+    packs: PackRepositoryDep,
+) -> GenerateRuleResponse:
     settings = get_settings()
 
     try:
@@ -23,7 +28,7 @@ async def generate_rule(request: GenerateRuleRequest) -> GenerateRuleResponse:
     except ValueError as error:
         raise HTTPException(status_code=503, detail=str(error)) from error
 
-    service = RuleGenerationService(provider)
+    service = RuleGenerationService(provider, packs=packs)
 
     try:
         return await service.generate(
@@ -31,6 +36,7 @@ async def generate_rule(request: GenerateRuleRequest) -> GenerateRuleResponse:
             prompt=request.prompt,
             level_id=request.levelId,
             locale=request.locale,
+            owner_id=owner_id,
         )
     except UnknownLevelError as error:
         # 400, not 404: the level is part of the request body, not the path.

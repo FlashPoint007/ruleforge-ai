@@ -2,9 +2,10 @@
 
 from fastapi import APIRouter
 
-from app.api.v1 import health, presets, rules
+from app.api.v1 import challenges, health, presets, rules
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(health.router)
 api_router.include_router(presets.router)
 api_router.include_router(rules.router)
+api_router.include_router(challenges.router)

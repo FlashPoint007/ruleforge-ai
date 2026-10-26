@@ -150,3 +150,61 @@ class LevelCapabilities(BaseModel):
     checkpoints: list[str] = Field(default_factory=list)
     enemySpawnPoints: int = 0
     coinSpawnPoints: int = 0
+
+class Challenge(BaseModel):
+    """An immutable, shareable pointer to a pack plus its replay parameters.
+
+    Versions and seed are frozen here on purpose: an old link must keep playing
+    the rule it was created with, even after the engine and level move on.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    challengeId: str
+    ownerId: str
+    packId: str
+    levelId: str
+    levelVersion: str
+    engineVersion: str
+    dslVersion: str
+    seed: int
+    visibility: Literal["private", "unlisted", "public"] = "unlisted"
+    createdAt: str
+    # Included so a challenge is readable on its own without a second lookup.
+    rulePack: RulePack | None = None
+
+
+class CreateChallengeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    packId: str = Field(min_length=1, max_length=64)
+    visibility: Literal["private", "unlisted", "public"] = "unlisted"
+
+
+class CreateChallengeResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    challengeId: str
+    url: str
+    challenge: Challenge
+
+
+class GenerationRecord(BaseModel):
+    """One generation attempt.
+
+    Deliberately stores no prompt text: only its length and hash. Logs must never
+    become a copy of what players typed.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    requestId: str
+    anonymousId: str
+    provider: str
+    model: str
+    status: str
+    latencyMs: int
+    promptLength: int
+    promptHash: str
+    errorCode: str | None = None
+    createdAt: str
