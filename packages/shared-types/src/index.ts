@@ -60,3 +60,17 @@ export interface ApiError {
   code: "unsupported" | "validation_failed" | "rate_limited" | "upstream_error";
   message: string;
 }
+/** A frozen, shareable challenge. Versions are pinned so old links keep working. */
+export interface Challenge {
+  challengeId: string;
+  ownerId: string;
+  packId: string;
+  levelId: string;
+  levelVersion: string;
+  engineVersion: string;
+  dslVersion: string;
+  seed: number;
+  visibility: "private" | "unlisted" | "public";
+  createdAt: string;
+  rulePack: RulePack | null;
+}

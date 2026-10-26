@@ -188,6 +188,11 @@ export class GameScene extends Phaser.Scene {
     window.dispatchEvent(new CustomEvent<RulesChangedPayload>(RULES_CHANGED_EVENT, { detail: payload }));
   }
 
+  /** True once create() has finished building the world. */
+  isReady(): boolean {
+    return this.player !== undefined && this.runtime !== undefined;
+  }
+
   /**
    * Read-only probe for end-to-end tests.
    *

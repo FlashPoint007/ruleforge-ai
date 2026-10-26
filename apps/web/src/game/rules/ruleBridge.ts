@@ -6,6 +6,7 @@ import type { RulesChangedPayload } from "@/game/rules/types";
 type GameSceneLike = Phaser.Scene & {
   loadPresetPack?: (pack: unknown) => void;
   clearRules?: () => void;
+  isReady?: () => boolean;
 };
 
 let activeGame: Phaser.Game | null = null;
@@ -16,7 +17,13 @@ export function registerGame(game: Phaser.Game | null): void {
 
 function getScene(): GameSceneLike | null {
   const scene = activeGame?.scene.getScene("GameScene");
-  return scene ? (scene as GameSceneLike) : null;
+  if (!scene) {
+    return null;
+  }
+  // getScene() returns the scene as soon as it is registered, which is before
+  // create() has built the runtime. Calling into it then throws on undefined.
+  const ready = (scene as GameSceneLike).isReady?.();
+  return ready === true ? (scene as GameSceneLike) : null;
 }
 
 /**
@@ -26,6 +33,11 @@ function getScene(): GameSceneLike | null {
  * a rule was applied. The scene reports validation failures through the
  * rules-changed event instead of throwing across the React boundary.
  */
+/** True once the GameScene exists and can accept a pack. */
+export function isGameReady(): boolean {
+  return getScene() !== null;
+}
+
 export function applyRulePack(pack: unknown): boolean {
   const scene = getScene();
   if (!scene?.loadPresetPack) {

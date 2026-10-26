@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { fetchChallenge } from "@/api/challenges";
 import { generateRule, saveChallenge } from "@/api/generate";
+import { checkChallengeCompatibility } from "@/game/rules/compatibility";
 import type { RuleRuntimeStats } from "@/game/rules/types";
 import { applyRulePack, clearRules, subscribeToRules } from "@/game/rules/ruleBridge";
 
@@ -58,7 +60,7 @@ const EMPTY_STATS: RuleRuntimeStats = {
  * compile it. Both end at the same place — a validated pack handed to the running
  * game — and the panel reflects real engine state, never optimistic UI.
  */
-export function RulePanel() {
+export function RulePanel({ initialChallengeId = null }: { initialChallengeId?: string | null }) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<RuleRuntimeStats>(EMPTY_STATS);
@@ -70,6 +72,7 @@ export function RulePanel() {
   const [saving, setSaving] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [lastPackId, setLastPackId] = useState<string | null>(null);
+  const [appliedChallenge, setAppliedChallenge] = useState<string | null>(null);
 
   useEffect(() => subscribeToRules((payload) => {
     setActiveId(payload.packId);
@@ -147,6 +150,65 @@ export function RulePanel() {
 
     setShareUrl(`${window.location.origin}${result.body.url}`);
   }, [lastPackId, saving]);
+
+  useEffect(() => {
+    if (!initialChallengeId || appliedChallenge === initialChallengeId) {
+      return;
+    }
+
+    let cancelled = false;
+    let retry: ReturnType<typeof setTimeout> | null = null;
+
+    const load = (): void => {
+      void fetchChallenge(initialChallengeId).then((result) => {
+      if (cancelled) {
+        return;
+      }
+
+        if (!result.ok) {
+          setServerMessage(`无法载入挑战：${result.reason}`);
+          return;
+        }
+
+        const { challenge } = result;
+        const compatibility = checkChallengeCompatibility(challenge);
+
+        if (compatibility.level === "rejected") {
+          setServerMessage(`这条挑战无法在当前版本运行：${compatibility.reason}`);
+          return;
+        }
+
+        if (!challenge.rulePack) {
+          setServerMessage("这条挑战没有附带规则内容。");
+          return;
+        }
+
+      if (!applyRulePack(challenge.rulePack)) {
+            // Phaser mounts asynchronously. A single attempt ran before the scene
+          // existed and silently dropped the rule, so poll briefly instead.
+          retry = setTimeout(load, 250);
+          return;
+        }
+
+        setAppliedChallenge(challenge.challengeId);
+        setLastPackId(challenge.packId);
+        setServerMessage(
+          compatibility.level === "warning"
+            ? `已载入挑战：${compatibility.reason}`
+            : "已载入分享的挑战规则。",
+        );
+      });
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+      if (retry !== null) {
+        clearTimeout(retry);
+      }
+    };
+  }, [initialChallengeId, appliedChallenge]);
 
   const statusLine = useMemo(() => {
     if (unavailable) {

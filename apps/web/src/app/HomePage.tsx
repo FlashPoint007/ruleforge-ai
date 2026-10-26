@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 
 import { P0_ACTIONS } from "@ruleforge/rule-schema";
 
@@ -15,7 +15,15 @@ const PRESETS = [
 ];
 
 export function HomePage() {
-  const [arenaOpen, setArenaOpen] = useState(false);
+  // A shared link opens the lab with that challenge already loaded.
+  const challengeId = new URLSearchParams(window.location.search).get("challenge");
+  const [arenaOpen, setArenaOpen] = useState(challengeId !== null);
+
+  useEffect(() => {
+    if (challengeId) {
+      setArenaOpen(true);
+    }
+  }, [challengeId]);
 
   return (
     <div className="page">
@@ -55,7 +63,7 @@ export function HomePage() {
         </section>
       ) : null}
 
-      <RulePanel />
+      <RulePanel initialChallengeId={challengeId} />
 
       <section className="panel">
         <h3 className="panel__title">预设规则</h3>

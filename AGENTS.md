@@ -39,25 +39,25 @@ The player describes a rule in natural language. A server-side LLM returns contr
 
 ## Current milestone
 
-**RF-001 … RF-009 done.** Prompt -> DeepSeek -> IR -> compiler -> five validation
-layers -> RulePack -> client, with SQLite persistence and immutable share links.
+**RF-001 … RF-010 done.** The share loop is closed: prompt -> DeepSeek -> IR ->
+compiler -> five validators -> RulePack -> client -> saved -> share link ->
+`/c/{id}` -> playable.
 
-Persistence invariants:
-- immutability is enforced by the schema (unique pack_id + INSERT OR IGNORE), not
-  by convention: a pack id can never be overwritten with different content
-- a challenge freezes dsl/engine/level versions and seed, so old links keep
-  replaying the rule they were created with
-- `generation_requests` has **no column for prompt text** — only length and hash.
-  Never add one.
-- `/rules/generate` persists the pack it returns. If it did not, `/challenges`
-  would 404 for a rule the client was just handed.
+Rules that must survive future edits:
+- a challenge is frozen. Loading it must never rewrite it; editing belongs on the
+  home page and creates a new pack.
+- DSL version mismatch is **rejected before loading**, engine mismatch only warns.
+  Running a pack built for different semantics would not fail loudly — it would
+  simply behave wrong.
+- `getScene()` returns a scene as soon as it is registered, which is *before*
+  `create()` has built anything. Always go through `isReady()`; calling into a
+  half-built scene throws on undefined.
+- the challenge loader must retry until Phaser mounts. A single attempt ran before
+  the canvas existed and silently dropped the player's rule.
 
-Wiring rule: routes must take dependencies as `Annotated[..., Depends(...)]`
-parameters. Calling a `get_*()` factory directly inside a route bypasses
-`dependency_overrides`, which silently breaks both tests and the real wiring.
-
-Identity: the anonymous id is a server-issued httponly cookie, minted on first
-contact with any endpoint. A client-supplied user id is never an identity claim.
+Test policy: anything that calls the real model is opt-in via
+`RULEFORGE_LIVE_TESTS=1` (backend pytest and Playwright alike). Leaving those in
+the default run makes the suite flaky on a slow network and spends real quota.
 
 Quality gates that must stay green:
 
@@ -71,6 +71,5 @@ cd apps/api && uv run pytest -q && uv run ruff check .
 
 ## Next task
 
-**RF-010: playing a shared challenge.** `GET /challenges/{id}` returns a frozen
-pack, but the client cannot yet open `/c/{challengeId}` and play it. That closes
-the share loop end to end.
+**RF-011: the second level.** MVP scope calls for two playable levels; only
+`lab-01` exists. Then the 50-prompt evaluation set from spec section 9.2.

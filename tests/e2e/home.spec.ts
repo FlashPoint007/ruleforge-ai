@@ -423,7 +423,15 @@ test("the shield rule grants a timed shield after three coins", async ({ page })
   await expect(page.getByTestId("rule-status")).not.toContainText("已应用 0 个动作");
 });
 
+const LIVE = process.env.RULEFORGE_LIVE_TESTS === "1";
+
+// Model-backed: depends on real upstream latency and spends real quota, so it is
+// opt-in. Run with RULEFORGE_LIVE_TESTS=1.
+test.describe("live model", () => {
+  test.skip(!LIVE, "set RULEFORGE_LIVE_TESTS=1 to run tests that call the real model");
+
 test("a prompt is compiled by the server and takes effect in the game", async ({ page, request }) => {
+  test.setTimeout(90_000);
   // The generation flow needs the FastAPI service; the rest of the suite does not.
   const health = await request.get("http://127.0.0.1:8000/api/v1/healthz").catch(() => null);
   test.skip(health === null || !health.ok(), "API not running on :8000");
@@ -462,6 +470,7 @@ test("a prompt is compiled by the server and takes effect in the game", async ({
 });
 
 test("an unsupported prompt is refused with a reason, not a silent failure", async ({ page, request }) => {
+  test.setTimeout(90_000);
   const health = await request.get("http://127.0.0.1:8000/api/v1/healthz").catch(() => null);
   test.skip(health === null || !health.ok(), "API not running on :8000");
 
@@ -477,6 +486,7 @@ test("an unsupported prompt is refused with a reason, not a silent failure", asy
 
   await expect(page.getByTestId("rule-message")).toContainText("无法生成", { timeout: 20_000 });
   await expect(page.getByTestId("rule-status")).toContainText("当前没有生效的规则");
+});
 });
 
 test("walking into an enemy costs a life instead of killing it", async ({ page }) => {
@@ -558,4 +568,83 @@ test("losing every life restarts the level instead of silently refilling", async
   expect(state).not.toBeNull();
   expect(state?.lives).toBeGreaterThanOrEqual(1);
   expect(state?.lives).toBeLessThanOrEqual(3);
+});
+
+/** Mints a real challenge through the API so the share page has something to open. */
+async function mintChallenge(request: import("@playwright/test").APIRequestContext): Promise<string> {
+  const generated = await request.post("http://127.0.0.1:8000/api/v1/rules/generate", {
+    data: {
+      requestId: `e2e-${Date.now()}`,
+      prompt: "每跳一次，重力反转",
+      levelId: "lab-01",
+      locale: "zh-CN",
+      existingPackId: null,
+      dslVersion: "1.1.0",
+    },
+  });
+  const body = await generated.json();
+  const created = await request.post("http://127.0.0.1:8000/api/v1/challenges", {
+    data: { packId: body.rulePack.packId, visibility: "public" },
+  });
+  const challenge = await created.json();
+  return challenge.challengeId as string;
+}
+
+test("a shared challenge link renders its frozen rule", async ({ page, request }) => {
+  const health = await request.get("http://127.0.0.1:8000/api/v1/healthz").catch(() => null);
+  test.skip(health === null || !health.ok(), "API not running on :8000");
+
+  const challengeId = await mintChallenge(request);
+
+  await page.goto(`/c/${challengeId}`);
+
+  await expect(page.getByText(challengeId)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText("player.gravity.toggle")).toBeVisible();
+  // A challenge from the current versions must not show a compatibility warning.
+  await expect(page.getByTestId("challenge-compat")).toHaveCount(0);
+});
+
+test("opening a challenge link and entering the lab applies its rule", async ({ page, request }) => {
+  const health = await request.get("http://127.0.0.1:8000/api/v1/healthz").catch(() => null);
+  test.skip(health === null || !health.ok(), "API not running on :8000");
+
+  const challengeId = await mintChallenge(request);
+
+  await page.goto(`/c/${challengeId}`);
+  await page.getByTestId("play-challenge").click();
+
+  const canvas = page.getByTestId("game-canvas").locator("canvas").first();
+  await expect(canvas).toBeVisible({ timeout: 25_000 });
+  await waitForScene(page);
+
+  // The rule must actually reach the runtime, not merely render in the panel.
+  await page.waitForFunction(
+    () => {
+      const hook = (window as unknown as { __ruleforge?: { readDebugState: () => { activeRules: string[] } } }).__ruleforge;
+      return (hook?.readDebugState?.().activeRules.length ?? 0) > 0;
+    },
+    undefined,
+    { timeout: 15_000 },
+  );
+
+  const state = (await page.evaluate(() => {
+    const hook = (window as unknown as { __ruleforge?: { readDebugState: () => unknown } }).__ruleforge;
+    return hook ? hook.readDebugState() : null;
+  })) as { packId: string | null; activeRules: string[] } | null;
+
+  expect(state?.packId).toMatch(/^pack-/);
+  expect(state?.activeRules.join(" ")).toContain("player.gravity.toggle");
+});
+
+test("a missing challenge shows a reason instead of a blank page", async ({ page }) => {
+  await page.goto("/c/ch_doesnotexist");
+
+  await expect(page.getByTestId("challenge-error")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByTestId("challenge-error")).toContainText("不存在");
+});
+
+test("an unknown path is reported, not silently rendered as home", async ({ page }) => {
+  await page.goto("/nope");
+
+  await expect(page.getByText("页面不存在")).toBeVisible();
 });

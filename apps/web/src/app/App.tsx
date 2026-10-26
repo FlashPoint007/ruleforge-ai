@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 
 import { checkBackend, type HealthState } from "@/app/health";
+import { ChallengePage } from "@/app/ChallengePage";
 import { HomePage } from "@/app/HomePage";
+import { parseRoute } from "@/app/route";
 import { resolveBaseUrl } from "@/api/ApiClient";
 
 export function App() {
   const [health, setHealth] = useState<HealthState>({ status: "checking", detail: "检测中…" });
+  const route = parseRoute(window.location.pathname);
 
   useEffect(() => {
     let cancelled = false;
@@ -37,12 +40,22 @@ export function App() {
       </header>
 
       <main>
-        <HomePage />
+        {route.name === "home" ? <HomePage /> : null}
+        {route.name === "challenge" ? <ChallengePage challengeId={route.challengeId} /> : null}
+        {route.name === "unknown" ? (
+          <section className="panel">
+            <h2 className="panel__title">页面不存在</h2>
+            <p className="panel__note">{route.path}</p>
+            <a className="button button--primary" href="/">
+              回到首页
+            </a>
+          </section>
+        ) : null}
       </main>
 
       <footer className="footer">
         <span>API 基址：{resolveBaseUrl()}</span>
-        <span>M0 脚手架 · 规则生成与 DSL 运行时尚未实现</span>
+        <span>规则生成 · DSL 运行时 · 挑战分享</span>
       </footer>
     </div>
   );
