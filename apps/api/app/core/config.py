@@ -24,7 +24,9 @@ class Settings(BaseSettings):
     app_port: int = 8000
 
     # Comma separated in the environment; use cors_origin_list in code.
-    cors_origins: str = "http://localhost:5173"
+    # 127.0.0.1 and localhost are different origins to a browser, and the dev
+    # server is reachable under both, so both are allowed by default.
+    cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
     llm_provider: str = "mock"
     deepseek_base_url: str = "https://api.deepseek.com"

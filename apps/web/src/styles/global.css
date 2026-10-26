@@ -263,6 +263,41 @@ body {
   border-color: rgba(97, 205, 244, 0.22);
 }
 
+.rule-input {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.rule-input__field {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(2, 6, 23, 0.7);
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.rule-input__field:focus {
+  outline: none;
+  border-color: var(--tech-cyan);
+  box-shadow: 0 0 0 3px rgba(97, 205, 244, 0.12);
+}
+
+.rule-input__field::placeholder {
+  color: var(--text-faint);
+}
+
+.rule-message {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--starlight);
+  line-height: 1.6;
+}
+
 .rule-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

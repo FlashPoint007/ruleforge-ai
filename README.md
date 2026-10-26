@@ -3,7 +3,7 @@
 > 用一句自然语言描述一条规则，得到一个经过确定性编译、可验证、可回放的关卡玩法。
 > Describe a rule in plain language — get a deterministic, validated, replayable game rule.
 
-**当前状态：M2 完成（RF-006）。可玩关卡 + 带条件的规则引擎 + 12/12 动作全部可用；LLM 生成与编译器尚未实现。**
+**当前状态：M3 起步（RF-007）。一句话 → 服务端编译 → 客户端执行，整条链路已打通（mock provider，未接真实模型）。**
 本项目处于开发早期，README 只描述**已经可以运行**的东西，不描述计划中的能力。
 
 ---
@@ -65,6 +65,29 @@ pnpm install && pnpm --filter @ruleforge/web dev
 | `checkpoint.activate` | 只能使用关卡预定义的 checkpoint id |
 
 **现在不存在「已注册但未实现」的动作**：有测试断言注册表数量与实现集合完全一致。
+
+### 一句话生成规则（RF-007）
+
+在「规则输入面板」输入一句话，服务端把它编译成受控 DSL 并校验，通过后客户端直接执行：
+
+```
+Prompt → LLMProvider(mock) → Rule IR → 编译器 → 五层校验 → RulePack → 客户端执行
+```
+
+五层校验各自独立可报告，任何一层失败都会返回 `validation_failed` 并给出具体原因：
+
+| 层 | 检查内容 |
+|---|---|
+| schema | 非空、事件/动作已注册、规则数与动作数上限、条件深度 |
+| type | 布尔事实不能做大小比较；`eq` 两侧类型必须一致 |
+| semantic | 参数是否在注册范围内（如 `magnitude` 500–1400）、modEq 除数不为 0 |
+| conflict | 两条规则不能写同一资源（两个 toggle 会互相抵消） |
+| level | 关卡是否真的支持该动作（有敌人？有可坍塌平台？平台 id 存在？） |
+
+**只有非空且全部通过校验的包才会返回 `ready`。**
+
+默认 `LLM_PROVIDER=mock`：Mock provider 从 `tests/fixtures/` 按关键词挑选固定 IR，
+所以整条流水线在**没有任何 API Key** 的情况下也能演示与测试。接真实模型只是换一个 provider。
 
 ### 规则条件（RF-005）
 
@@ -174,7 +197,13 @@ pnpm --filter @ruleforge/web test:e2e
 cd apps/api
 uv run pytest -q
 uv run ruff check .
+
+# 跨语言契约测试（Python 生成的包必须能被 TS 运行时执行）
+pnpm --filter @ruleforge/web test -- contract
 ```
+
+> 生成接口需要后端在 :8000 运行。E2E 里两条生成流程测试会在后端未启动时自动跳过，
+> 而不是误报失败。
 
 ## 安全底线
 

@@ -26,7 +26,7 @@ export interface PresetMeta {
   rules: unknown[];
 }
 
-export type GenerationStatus = "ready" | "unsupported" | "validation_failed";
+export type GenerationStatus = "ready" | "unsupported" | "validation_failed" | "upstream_error";
 
 export interface GenerateRuleRequest {
   requestId: string;
@@ -37,17 +37,22 @@ export interface GenerateRuleRequest {
   dslVersion: string;
 }
 
+export interface ValidationReport {
+  schemaOk: boolean;
+  typeOk: boolean;
+  semanticOk: boolean;
+  conflictOk: boolean;
+  levelCompatible: boolean;
+  errors: string[];
+}
+
 export interface GenerateRuleResponse {
   requestId: string;
-  status: GenerationStatus;
-  rulePack?: RulePack;
-  explanation?: string;
+  status: "ready" | "unsupported" | "validation_failed" | "upstream_error";
+  rulePack: RulePack | null;
+  explanation: string;
   warnings: string[];
-  validation: {
-    schemaOk: boolean;
-    conflictOk: boolean;
-    levelCompatible: boolean;
-  };
+  validation: ValidationReport;
 }
 
 export interface ApiError {

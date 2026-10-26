@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { generateRule } from "@/api/generate";
 import type { RuleRuntimeStats } from "@/game/rules/types";
 import { applyRulePack, clearRules, subscribeToRules } from "@/game/rules/ruleBridge";
 
+import enemySlowPreset from "@content/presets/preset-enemy-slow.json";
 import gravityPreset from "@content/presets/preset-gravity-flip.json";
 import guardedPreset from "@content/presets/preset-guarded-gravity.json";
 import shieldPreset from "@content/presets/preset-shield-on-coin.json";
-import enemySlowPreset from "@content/presets/preset-enemy-slow.json";
 
 interface PresetEntry {
   id: string;
@@ -53,14 +54,19 @@ const EMPTY_STATS: RuleRuntimeStats = {
 /**
  * Rule input panel.
  *
- * It reflects real engine state, not optimistic UI: if the scene rejects a pack,
- * the error is shown and the card is not marked active.
+ * Two ways in: pick a vetted preset, or describe a rule and let the server
+ * compile it. Both end at the same place — a validated pack handed to the running
+ * game — and the panel reflects real engine state, never optimistic UI.
  */
 export function RulePanel() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<RuleRuntimeStats>(EMPTY_STATS);
   const [unavailable, setUnavailable] = useState(false);
+
+  const [prompt, setPrompt] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [serverMessage, setServerMessage] = useState<string | null>(null);
 
   useEffect(() => subscribeToRules((payload) => {
     setActiveId(payload.packId);
@@ -70,20 +76,55 @@ export function RulePanel() {
 
   const toggle = (entry: PresetEntry): void => {
     if (activeId === entry.id) {
-      const ok = clearRules();
-      if (!ok) {
+      if (!clearRules()) {
         setUnavailable(true);
       }
       return;
     }
-
-    const ok = applyRulePack(entry.pack);
-    if (!ok) {
+    if (!applyRulePack(entry.pack)) {
       setUnavailable(true);
       return;
     }
     setUnavailable(false);
   };
+
+  const submit = useCallback(async () => {
+    const text = prompt.trim();
+    if (text.length === 0 || busy) {
+      return;
+    }
+
+    setBusy(true);
+    setServerMessage(null);
+
+    const result = await generateRule({ prompt: text, levelId: "lab-01" });
+    setBusy(false);
+
+    if (!result.ok) {
+      setServerMessage(`生成失败：${result.reason}（后端未启动？）`);
+      return;
+    }
+
+    const { body } = result;
+
+    if (body.status === "ready" && body.rulePack) {
+      if (!applyRulePack(body.rulePack)) {
+        setUnavailable(true);
+        setServerMessage("规则已生成，但实验室还没启动，先点「进入实验室」。");
+        return;
+      }
+      setServerMessage(`已生成并启用：${body.explanation || "规则已生效"}`);
+      return;
+    }
+
+    if (body.status === "unsupported") {
+      setServerMessage(`无法生成：${body.explanation}`);
+      return;
+    }
+
+    const firstError = body.validation.errors[0] ?? "未知原因";
+    setServerMessage(`规则被拒绝：${firstError}`);
+  }, [busy, prompt]);
 
   const statusLine = useMemo(() => {
     if (unavailable) {
@@ -109,8 +150,39 @@ export function RulePanel() {
     <section className="panel panel--rules">
       <h3 className="panel__title">规则输入面板</h3>
       <p className="panel__note">
-        选一张规则卡，游戏世界会立刻按它运行。这里跑的是真实的规则引擎，不是演示动画。
+        用一句话描述规则，服务端会把它编译成受控 DSL 并校验；也可以直接选下面的预设。
       </p>
+
+      <div className="rule-input">
+        <input
+          className="rule-input__field"
+          type="text"
+          value={prompt}
+          placeholder="例如：每跳一次，重力反转"
+          maxLength={500}
+          onChange={(event) => setPrompt(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              void submit();
+            }
+          }}
+          aria-label="规则描述"
+        />
+        <button
+          type="button"
+          className="button button--primary"
+          onClick={() => void submit()}
+          disabled={busy || prompt.trim().length === 0}
+        >
+          {busy ? "生成中…" : "生成规则"}
+        </button>
+      </div>
+
+      {serverMessage ? (
+        <p className="rule-message" data-testid="rule-message">
+          {serverMessage}
+        </p>
+      ) : null}
 
       <div className="rule-cards">
         {PRESETS.map((entry) => {

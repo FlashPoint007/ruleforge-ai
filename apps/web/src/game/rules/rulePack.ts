@@ -81,6 +81,7 @@ export function parseExecutablePack(raw: unknown): { id: string; rules: unknown[
   }
 
   const pack = raw as {
+    packId?: string;
     id?: string;
     rules: Array<{
       id: string;
@@ -89,7 +90,13 @@ export function parseExecutablePack(raw: unknown): { id: string; rules: unknown[
       actions: RuleAction[];
     }>;
   };
-  const label = typeof pack.id === "string" && pack.id.length > 0 ? pack.id : "rule-pack";
+  // Prefer the server's content-hashed packId; "id" is the older preset shape.
+  const label =
+    typeof pack.packId === "string" && pack.packId.length > 0
+      ? pack.packId
+      : typeof pack.id === "string" && pack.id.length > 0
+        ? pack.id
+        : "rule-pack";
 
   if (!Array.isArray(pack.rules) || pack.rules.length === 0) {
     fail("rule pack has no rules");

@@ -1,0 +1,34 @@
+{
+  "keywords": [
+    "条件",
+    "之后",
+    "攒",
+    "after"
+  ],
+  "status": "ok",
+  "rules": [
+    {
+      "trigger": {
+        "event": "player.jumpCommitted"
+      },
+      "conditions": [
+        {
+          "op": "gte",
+          "fact": "player.coinCount",
+          "value": 2
+        }
+      ],
+      "actions": [
+        {
+          "op": "player.gravity.toggle",
+          "target": "player",
+          "params": {
+            "magnitude": 980
+          }
+        }
+      ]
+    }
+  ],
+  "explanation": "收集 2 枚金币后，每跳一次重力反转。",
+  "warnings": []
+}

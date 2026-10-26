@@ -1,0 +1,13 @@
+{
+  "keywords": [
+    "跳舞",
+    "dance",
+    "唱歌"
+  ],
+  "status": "unsupported",
+  "rules": [],
+  "explanation": "这个描述无法用已注册的动作表达。",
+  "warnings": [
+    "试试「每跳一次重力反转」这类具体的行为描述。"
+  ]
+}

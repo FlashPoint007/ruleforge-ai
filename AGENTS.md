@@ -39,33 +39,36 @@ The player describes a rule in natural language. A server-side LLM returns contr
 
 ## Current milestone
 
-**RF-001 … RF-006 done.** Playable level, rule engine with conditions, and all
-twelve registered actions implemented.
+**RF-001 … RF-007 done.** The full promise chain works with the mock provider:
+prompt -> Rule IR -> compiler -> five validation layers -> RulePack -> client.
 
-Every action is real; there is no "registered but unimplemented" bucket any more,
-and a test asserts the implemented set equals `P0_ACTIONS`.
+Server (apps/api):
+- `app/domain/registry.py` mirrors packages/rule-schema. It must stay in lockstep
+  with the TS registry; `tests/test_contract.py` asserts that.
+- `app/compiler/validators.py` holds the five layers, each independently reportable.
+  A later layer never runs once an earlier one failed.
+- `app/compiler/compiler.py` fills ids/targets/defaults and hashes the content into
+  a stable packId. It knows nothing about providers.
+- Only a non-empty, fully valid pack may be returned as `ready`.
 
-Constraints that must survive future edits:
-- spawning uses level-authored safe points only, and fails when they are occupied
-- `platform.collapseAfter` only touches collapsible platforms; `delayMs` 250-5000
-- `platform.visibility.set` only addresses allowlisted ids, and collision follows
-  the visual
-- a condition that cannot be evaluated blocks the rule and is counted
-- event-scoped facts are readable only during their own event
+Cross-language guarantee: `tests/test_generate_api.py` writes golden packs to
+`tests/golden/`, and `apps/web/src/test/contract.test.ts` loads and *executes*
+them. A server that emits something the client cannot run fails in CI, not in
+the browser.
 
 Quality gates that must stay green:
 
 ```bash
 pnpm --filter @ruleforge/web typecheck && pnpm --filter @ruleforge/web lint
-pnpm --filter @ruleforge/web test          # Vitest: engine, conditions, schema
+pnpm --filter @ruleforge/web test          # includes the contract test
 pnpm --filter @ruleforge/web build
-pnpm run test:e2e                          # Playwright, asserts real physics state
+pnpm run test:e2e                          # generation tests skip if API is down
 cd apps/api && uv run pytest -q && uv run ruff check .
 ```
 
 ## Next task
 
-**RF-007: the server-side compiler.** The client can execute validated rules, but
-rules are still hand-written JSON. The product promise — one sentence in, a
-validated DSL pack out — has no pipeline yet: Prompt -> Rule IR -> compile ->
-validate -> RulePack.
+**RF-008: the real DeepSeek provider.** The pipeline is complete and provider
+agnostic; `DeepSeekLLMProvider` still raises NotImplementedError. Implement it
+with the spec's 5.3/5.5 rules (json_object, finish_reason checks, one bounded
+retry, timeout 25s) and keep it behind `LLM_PROVIDER=deepseek`.

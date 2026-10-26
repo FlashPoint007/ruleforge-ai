@@ -1,0 +1,27 @@
+{
+  "dslVersion": "1.1.0",
+  "engineVersion": "0.1.0",
+  "packId": "pack-befd42a299d3cee5",
+  "levelId": "lab-01",
+  "levelVersion": "1.8.0",
+  "seed": 0,
+  "rules": [
+    {
+      "id": "rule-1",
+      "trigger": {
+        "event": "coin.collected"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "op": "enemy.speed.multiply",
+          "target": "enemies",
+          "params": {
+            "factor": 0.7,
+            "durationMs": 5000
+          }
+        }
+      ]
+    }
+  ]
+}

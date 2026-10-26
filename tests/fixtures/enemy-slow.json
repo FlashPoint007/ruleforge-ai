@@ -1,0 +1,31 @@
+{
+  "keywords": [
+    "敌人",
+    "减速",
+    "enemy",
+    "slow",
+    "金币",
+    "coin"
+  ],
+  "status": "ok",
+  "rules": [
+    {
+      "trigger": {
+        "event": "coin.collected"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "op": "enemy.speed.multiply",
+          "target": "enemies",
+          "params": {
+            "factor": 0.7,
+            "durationMs": 5000
+          }
+        }
+      ]
+    }
+  ],
+  "explanation": "捡到金币后，所有现存敌人减速 30%，持续 5 秒。",
+  "warnings": []
+}

@@ -1,0 +1,25 @@
+{
+  "keywords": [
+    "非法",
+    "invalid",
+    "teleport"
+  ],
+  "status": "ok",
+  "rules": [
+    {
+      "trigger": {
+        "event": "player.jumpCommitted"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "op": "player.teleport.anywhere",
+          "target": "player",
+          "params": {}
+        }
+      ]
+    }
+  ],
+  "explanation": "故意使用未注册动作，用于验证编译器会拒绝。",
+  "warnings": []
+}

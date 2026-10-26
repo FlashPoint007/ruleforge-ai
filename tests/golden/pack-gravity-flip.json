@@ -1,0 +1,26 @@
+{
+  "dslVersion": "1.1.0",
+  "engineVersion": "0.1.0",
+  "packId": "pack-62973495bd21515b",
+  "levelId": "lab-01",
+  "levelVersion": "1.8.0",
+  "seed": 0,
+  "rules": [
+    {
+      "id": "rule-1",
+      "trigger": {
+        "event": "player.jumpCommitted"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "op": "player.gravity.toggle",
+          "target": "player",
+          "params": {
+            "magnitude": 980
+          }
+        }
+      ]
+    }
+  ]
+}

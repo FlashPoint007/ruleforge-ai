@@ -1,1 +1,1 @@
-"""Rule IR and DSL domain models (implemented in milestone M2)."""
+"""Rule IR and DSL domain models, plus the mirrored DSL registry."""

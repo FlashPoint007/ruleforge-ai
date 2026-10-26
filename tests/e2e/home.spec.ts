@@ -421,3 +421,59 @@ test("the shield rule grants a timed shield after three coins", async ({ page })
   await expect(page.getByTestId("rule-status")).toContainText("已应用");
   await expect(page.getByTestId("rule-status")).not.toContainText("已应用 0 个动作");
 });
+
+test("a prompt is compiled by the server and takes effect in the game", async ({ page, request }) => {
+  // The generation flow needs the FastAPI service; the rest of the suite does not.
+  const health = await request.get("http://127.0.0.1:8000/api/v1/healthz").catch(() => null);
+  test.skip(health === null || !health.ok(), "API not running on :8000");
+
+  const errors = collectUnexpectedErrors(page);
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "进入实验室" }).click();
+  const canvas = page.getByTestId("game-canvas").locator("canvas").first();
+  await expect(canvas).toBeVisible({ timeout: 20_000 });
+  await canvas.click();
+  await waitForScene(page);
+  await waitForGround(page);
+
+  await page.getByLabel("规则描述").fill("每跳一次，重力反转");
+  await page.getByRole("button", { name: "生成规则" }).click();
+
+  await expect(page.getByTestId("rule-message")).toContainText("已生成并启用", { timeout: 20_000 });
+  await expect(page.getByTestId("rule-status")).toContainText("规则运行中");
+
+  await page.keyboard.down("Space");
+  await page.waitForTimeout(250);
+  await page.keyboard.up("Space");
+  await page.waitForTimeout(700);
+
+  const state = (await page.evaluate(() => {
+    const hook = (window as unknown as { __ruleforge?: { readDebugState: () => unknown } }).__ruleforge;
+    return hook ? hook.readDebugState() : null;
+  })) as { gravityDirection: number; actionsApplied: number; packId: string | null } | null;
+
+  // The pack came from the server, so its id must be the server's content hash.
+  expect(state?.packId).toMatch(/^pack-/);
+  expect(state?.actionsApplied).toBeGreaterThan(0);
+  expect(state?.gravityDirection).toBe(-1);
+  expect(errors).toEqual([]);
+});
+
+test("an unsupported prompt is refused with a reason, not a silent failure", async ({ page, request }) => {
+  const health = await request.get("http://127.0.0.1:8000/api/v1/healthz").catch(() => null);
+  test.skip(health === null || !health.ok(), "API not running on :8000");
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "进入实验室" }).click();
+  const canvas = page.getByTestId("game-canvas").locator("canvas").first();
+  await expect(canvas).toBeVisible({ timeout: 20_000 });
+  await canvas.click();
+  await waitForScene(page);
+
+  await page.getByLabel("规则描述").fill("跳舞");
+  await page.getByRole("button", { name: "生成规则" }).click();
+
+  await expect(page.getByTestId("rule-message")).toContainText("无法生成", { timeout: 20_000 });
+  await expect(page.getByTestId("rule-status")).toContainText("当前没有生效的规则");
+});

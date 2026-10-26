@@ -1,0 +1,26 @@
+{
+  "keywords": [
+    "越界",
+    "outofbounds"
+  ],
+  "status": "ok",
+  "rules": [
+    {
+      "trigger": {
+        "event": "player.jumpCommitted"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "op": "player.gravity.toggle",
+          "target": "player",
+          "params": {
+            "magnitude": 9999
+          }
+        }
+      ]
+    }
+  ],
+  "explanation": "参数越界，用于验证语义层会拒绝。",
+  "warnings": []
+}

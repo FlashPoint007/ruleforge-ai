@@ -1,0 +1,28 @@
+{
+  "keywords": [
+    "重力",
+    "gravity",
+    "反转",
+    "flip"
+  ],
+  "status": "ok",
+  "rules": [
+    {
+      "trigger": {
+        "event": "player.jumpCommitted"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "op": "player.gravity.toggle",
+          "target": "player",
+          "params": {
+            "magnitude": 980
+          }
+        }
+      ]
+    }
+  ],
+  "explanation": "每跳一次，重力方向反转。",
+  "warnings": []
+}

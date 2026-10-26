@@ -1,0 +1,41 @@
+{
+  "keywords": [
+    "冲突",
+    "conflict"
+  ],
+  "status": "ok",
+  "rules": [
+    {
+      "trigger": {
+        "event": "player.jumpCommitted"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "op": "player.gravity.toggle",
+          "target": "player",
+          "params": {
+            "magnitude": 980
+          }
+        }
+      ]
+    },
+    {
+      "trigger": {
+        "event": "player.landed"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "op": "player.gravity.toggle",
+          "target": "player",
+          "params": {
+            "magnitude": 980
+          }
+        }
+      ]
+    }
+  ],
+  "explanation": "两条规则同时写重力控制器，用于验证冲突层。",
+  "warnings": []
+}
