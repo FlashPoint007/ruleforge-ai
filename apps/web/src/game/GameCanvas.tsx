@@ -13,7 +13,7 @@ import { readDebugState, registerGame } from "@/game/rules/ruleBridge";
  * Without an explicit teardown that removes the canvas, that leaves two running
  * game loops stacked in the DOM, so cleanup is deliberate here.
  */
-export function GameCanvas() {
+export function GameCanvas({ levelId }: { levelId?: string }) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const gameRef = useRef<Phaser.Game | null>(null);
 
@@ -23,7 +23,7 @@ export function GameCanvas() {
       return;
     }
 
-    const game = createGame(host);
+    const game = createGame(host, levelId);
     gameRef.current = game;
     registerGame(game);
 
@@ -40,7 +40,7 @@ export function GameCanvas() {
       // Phaser leaves the canvas behind in some teardown orders; be explicit.
       host.replaceChildren();
     };
-  }, []);
+  }, [levelId]);
 
   return (
     <div className="game-stage">

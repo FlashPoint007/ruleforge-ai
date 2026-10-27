@@ -39,25 +39,22 @@ The player describes a rule in natural language. A server-side LLM returns contr
 
 ## Current milestone
 
-**RF-001 … RF-010 done.** The share loop is closed: prompt -> DeepSeek -> IR ->
-compiler -> five validators -> RulePack -> client -> saved -> share link ->
-`/c/{id}` -> playable.
+**RF-001 … RF-011 done.** Two playable levels, real model generation, and shareable
+challenge links.
 
-Rules that must survive future edits:
-- a challenge is frozen. Loading it must never rewrite it; editing belongs on the
-  home page and creates a new pack.
-- DSL version mismatch is **rejected before loading**, engine mismatch only warns.
-  Running a pack built for different semantics would not fail loudly — it would
-  simply behave wrong.
-- `getScene()` returns a scene as soon as it is registered, which is *before*
-  `create()` has built anything. Always go through `isReady()`; calling into a
-  half-built scene throws on undefined.
-- the challenge loader must retry until Phaser mounts. A single attempt ran before
-  the canvas existed and silently dropped the player's rule.
+Levels:
+- `game-content/levels/` is the single source of truth. Adding a level means adding
+  a JSON file and registering it in `apps/web/src/game/levels/levelRegistry.ts`.
+- the server derives `LevelCapabilities` by reading those files
+  (`app/services/levels.py`). Do not hand-maintain a capability table again: the
+  hand-written one silently disagreed with the level contents.
+- `GameScene` takes a level id in its constructor, so one scene instance is tied to
+  one level. Switching levels rebuilds the game; never mutate a live scene.
+- anything drawn from level state (HUD labels included) must come from the loaded
+  level, not a constant. The HUD claimed "lab-01" while lab-02 was running.
 
 Test policy: anything that calls the real model is opt-in via
-`RULEFORGE_LIVE_TESTS=1` (backend pytest and Playwright alike). Leaving those in
-the default run makes the suite flaky on a slow network and spends real quota.
+`RULEFORGE_LIVE_TESTS=1` (backend pytest and Playwright alike).
 
 Quality gates that must stay green:
 
@@ -71,5 +68,6 @@ cd apps/api && uv run pytest -q && uv run ruff check .
 
 ## Next task
 
-**RF-011: the second level.** MVP scope calls for two playable levels; only
-`lab-01` exists. Then the 50-prompt evaluation set from spec section 9.2.
+**RF-012: the 50-prompt evaluation set** (spec 9.2). Two levels exist and the
+pipeline is real; the open question is how often natural language actually
+compiles into a rule the player meant. That needs measurement, not more features.

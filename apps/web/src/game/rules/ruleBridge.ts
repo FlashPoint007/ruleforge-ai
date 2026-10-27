@@ -77,6 +77,8 @@ export interface DebugState {
   conditionsBlocked: number;
   shieldMs: number;
   checkpointId: string | null;
+  levelId: string;
+  levelName: string;
 }
 
 export function readDebugState(): DebugState | null {

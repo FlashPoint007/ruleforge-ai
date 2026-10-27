@@ -13,20 +13,7 @@ from app.domain.models import (
 )
 from app.providers import LLMProvider
 from app.repositories.interfaces import RulePackRepository
-
-SUPPORTED_LEVELS: dict[str, LevelCapabilities] = {
-    "lab-01": LevelCapabilities(
-        levelId="lab-01",
-        levelVersion="1.8.0",
-        hasEnemies=True,
-        hasCoins=True,
-        collapsiblePlatforms=2,
-        hideablePlatforms=["bridge-1"],
-        checkpoints=["mid-1", "end-1"],
-        enemySpawnPoints=2,
-        coinSpawnPoints=3,
-    ),
-}
+from app.services.levels import SUPPORTED_LEVELS
 
 
 class UnknownLevelError(Exception):

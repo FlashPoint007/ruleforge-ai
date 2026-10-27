@@ -6,7 +6,7 @@ import { BootScene } from "@/game/scenes/BootScene";
 import { GameScene } from "@/game/scenes/GameScene";
 import { UIScene } from "@/game/scenes/UIScene";
 
-export function createGame(parent: HTMLElement): Phaser.Game {
+export function createGame(parent: HTMLElement, levelId?: string): Phaser.Game {
   return new Phaser.Game({
     type: Phaser.AUTO,
     parent,
@@ -29,6 +29,8 @@ export function createGame(parent: HTMLElement): Phaser.Game {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
     },
-    scene: [BootScene, GameScene, UIScene],
+    // GameScene is constructed with the chosen level, so one game instance is
+    // tied to one level; switching levels rebuilds the game.
+    scene: [BootScene, new GameScene(levelId), UIScene],
   });
 }

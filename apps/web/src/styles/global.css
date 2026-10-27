@@ -134,6 +134,47 @@ body {
   line-height: 1.75;
 }
 
+.level-picker {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.level-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(2, 6, 23, 0.55);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.level-chip:hover {
+  border-color: rgba(97, 205, 244, 0.45);
+}
+
+.level-chip--active {
+  border-color: var(--tech-cyan);
+  background: rgba(33, 107, 171, 0.28);
+  color: var(--text);
+}
+
+.level-chip__name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.level-chip__meta {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-family: ui-monospace, monospace;
+}
+
 .hero__actions {
   display: flex;
   align-items: center;

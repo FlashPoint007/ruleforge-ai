@@ -648,3 +648,81 @@ test("an unknown path is reported, not silently rendered as home", async ({ page
 
   await expect(page.getByText("页面不存在")).toBeVisible();
 });
+
+test("the level picker offers both MVP levels", async ({ page }) => {
+  await page.goto("/");
+
+  const chips = page.locator("[data-level-id]");
+  await expect(chips).toHaveCount(2);
+  await expect(page.locator('[data-level-id="lab-01"]')).toContainText("天空遗迹");
+  await expect(page.locator('[data-level-id="lab-02"]')).toContainText("实验工厂");
+});
+
+test("choosing lab-02 loads that level, not the default one", async ({ page }) => {
+  await page.goto("/");
+
+  await page.locator('[data-level-id="lab-02"]').click();
+  await page.getByRole("button", { name: "进入实验室" }).click();
+
+  const canvas = page.getByTestId("game-canvas").locator("canvas").first();
+  await expect(canvas).toBeVisible({ timeout: 25_000 });
+  await waitForScene(page);
+
+  const state = (await page.evaluate(() => {
+    const hook = (window as unknown as { __ruleforge?: { readDebugState: () => unknown } }).__ruleforge;
+    return hook ? hook.readDebugState() : null;
+  })) as { liveEnemies: number } | null;
+
+  // lab-02 has six enemies; lab-01 has five. This proves the chosen level is the
+  // one that loaded, not that a canvas merely appeared.
+  expect(state?.liveEnemies).toBe(6);
+});
+
+test("switching levels rebuilds the game instead of reusing stale state", async ({ page }) => {
+  await page.goto("/");
+
+  await page.locator('[data-level-id="lab-02"]').click();
+  await page.getByRole("button", { name: "进入实验室" }).click();
+  let canvas = page.getByTestId("game-canvas").locator("canvas").first();
+  await expect(canvas).toBeVisible({ timeout: 25_000 });
+  await waitForScene(page);
+
+  // Collapse, switch back to lab-01, reopen: the canvas must be a new instance.
+  await page.getByRole("button", { name: "收起实验室" }).click();
+  await page.locator('[data-level-id="lab-01"]').click();
+  await page.getByRole("button", { name: "进入实验室" }).click();
+
+  canvas = page.getByTestId("game-canvas").locator("canvas").first();
+  await expect(canvas).toBeVisible({ timeout: 25_000 });
+  await waitForScene(page);
+
+  const state = (await page.evaluate(() => {
+    const hook = (window as unknown as { __ruleforge?: { readDebugState: () => unknown } }).__ruleforge;
+    return hook ? hook.readDebugState() : null;
+  })) as { liveEnemies: number } | null;
+
+  expect(state?.liveEnemies).toBe(5);
+});
+
+
+test("the HUD names the level that is actually running", async ({ page }) => {
+  await page.goto("/");
+
+  await page.locator('[data-level-id="lab-02"]').click();
+  await page.getByRole("button", { name: "进入实验室" }).click();
+
+  const canvas = page.getByTestId("game-canvas").locator("canvas").first();
+  await expect(canvas).toBeVisible({ timeout: 25_000 });
+  await waitForScene(page);
+  await page.waitForTimeout(500);
+
+  // The HUD text is drawn into the canvas, so assert the state that drives it.
+  // A hardcoded label used to claim "lab-01" while lab-02 was running.
+  const label = (await page.evaluate(() => {
+    const hook = (window as unknown as { __ruleforge?: { readDebugState: () => { levelName?: string; levelId?: string } } }).__ruleforge;
+    return hook?.readDebugState?.() ?? null;
+  })) as { levelName: string; levelId: string } | null;
+
+  expect(label?.levelId).toBe("lab-02");
+  expect(label?.levelName).toBe("实验工厂");
+});

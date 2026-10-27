@@ -60,7 +60,13 @@ const EMPTY_STATS: RuleRuntimeStats = {
  * compile it. Both end at the same place — a validated pack handed to the running
  * game — and the panel reflects real engine state, never optimistic UI.
  */
-export function RulePanel({ initialChallengeId = null }: { initialChallengeId?: string | null }) {
+export function RulePanel({
+  initialChallengeId = null,
+  levelId = "lab-01",
+}: {
+  initialChallengeId?: string | null;
+  levelId?: string;
+}) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<RuleRuntimeStats>(EMPTY_STATS);
@@ -103,7 +109,7 @@ export function RulePanel({ initialChallengeId = null }: { initialChallengeId?: 
     setBusy(true);
     setServerMessage(null);
 
-    const result = await generateRule({ prompt: text, levelId: "lab-01" });
+    const result = await generateRule({ prompt: text, levelId });
     setBusy(false);
 
     if (!result.ok) {
@@ -132,7 +138,7 @@ export function RulePanel({ initialChallengeId = null }: { initialChallengeId?: 
 
     const firstError = body.validation.errors[0] ?? "未知原因";
     setServerMessage(`规则被拒绝：${firstError}`);
-  }, [busy, prompt]);
+  }, [busy, prompt, levelId]);
 
   const share = useCallback(async () => {
     if (!lastPackId || saving) {

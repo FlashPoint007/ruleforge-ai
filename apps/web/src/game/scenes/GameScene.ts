@@ -4,7 +4,6 @@ import { CAMERA, GAME_HEIGHT, PHYSICS, RESPAWN } from "@/game/config";
 import { Coin } from "@/game/entities/Coin";
 import { Enemy } from "@/game/entities/Enemy";
 import { Player } from "@/game/entities/Player";
-import { parseLevel } from "@/game/levels/levelSchema";
 import type { LevelDef } from "@/game/levels/levelSchema";
 import { RuleRuntime } from "@/game/rules/RuleRuntime";
 import { RULES_CHANGED_EVENT } from "@/game/rules/types";
@@ -17,7 +16,7 @@ import { CrumblingPlatform } from "@/game/world/CrumblingPlatform";
 import { HideablePlatform } from "@/game/world/HideablePlatform";
 import { addPlatform } from "@/game/world/terrain";
 
-import levelData from "@content/levels/lab-01.json";
+import { DEFAULT_LEVEL_ID, loadLevel } from "@/game/levels/levelRegistry";
 
 /**
  * The playable arena.
@@ -51,12 +50,17 @@ export class GameScene extends Phaser.Scene {
   private hideablePlatforms = new Map<string, HideablePlatform>();
   private lastStatsSignature = "";
 
-  constructor() {
+  private readonly levelId: string;
+
+  constructor(levelId: string = DEFAULT_LEVEL_ID) {
     super("GameScene");
+    this.levelId = levelId;
   }
 
   create(): void {
-    this.level = parseLevel(levelData);
+    // The level is chosen at scene construction, so a scene instance is tied to
+    // one level. Switching levels restarts the scene rather than mutating it.
+    this.level = loadLevel(this.levelId);
     this.checkpoint = { ...this.level.spawn };
 
     this.physics.world.setBounds(0, 0, this.level.world.width, this.level.world.height);
@@ -171,6 +175,8 @@ export class GameScene extends Phaser.Scene {
 
   private publishHudState(): void {
     publishHud({
+      levelName: this.level.name,
+      levelId: this.level.id,
       lives: this.lives,
       coins: this.coinsCollected,
       totalCoins: this.coins.length,
@@ -220,6 +226,8 @@ export class GameScene extends Phaser.Scene {
     conditionsBlocked: number;
     shieldMs: number;
     checkpointId: string | null;
+    levelId: string;
+    levelName: string;
   } {
     if (!this.player) {
       return {
@@ -243,6 +251,8 @@ export class GameScene extends Phaser.Scene {
         conditionsBlocked: 0,
         shieldMs: 0,
         checkpointId: null,
+        levelId: this.levelId,
+        levelName: "",
       };
     }
 
@@ -270,6 +280,8 @@ export class GameScene extends Phaser.Scene {
       checkpointId:
         this.level.checkpoints.find((c) => c.x === this.checkpoint.x && c.y === this.checkpoint.y)?.id ??
         null,
+      levelId: this.level.id,
+      levelName: this.level.name,
     };
   }
 

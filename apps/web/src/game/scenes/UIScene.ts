@@ -4,6 +4,8 @@ import { ART_PALETTE } from "@/app/theme";
 import { DSL_VERSION } from "@ruleforge/rule-schema";
 
 export interface HudState {
+  levelName: string;
+  levelId: string;
   lives: number;
   coins: number;
   totalCoins: number;
@@ -21,6 +23,7 @@ const HUD_EVENT = "ruleforge:hud";
  * not from a counter that drifts.
  */
 export class UIScene extends Phaser.Scene {
+  private levelText?: Phaser.GameObjects.Text;
   private coinText?: Phaser.GameObjects.Text;
   private rulesText?: Phaser.GameObjects.Text;
 
@@ -29,8 +32,10 @@ export class UIScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.add
-      .text(20, 18, "天空遗迹 · lab-01", {
+    // Populated from the first HUD event: hardcoding a level name here made the
+    // header claim "lab-01" while lab-02 was running.
+    this.levelText = this.add
+      .text(20, 18, "", {
         fontFamily: "system-ui, sans-serif",
         fontSize: "13px",
         color: ART_PALETTE.pureWhite,
@@ -71,6 +76,7 @@ export class UIScene extends Phaser.Scene {
 
     const onHud = (event: Event): void => {
       const state = (event as CustomEvent<HudState>).detail;
+      this.levelText?.setText(`${state.levelName} · ${state.levelId}`);
       this.coinText?.setText(
         `♥ ${state.lives}   金币 ${state.coins} / ${state.totalCoins}   击败 ${state.defeated}`,
       );
