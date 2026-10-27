@@ -39,24 +39,27 @@ The player describes a rule in natural language. A server-side LLM returns contr
 
 ## Current milestone
 
-**RF-001 … RF-012 done.** Two levels, real model, share links, and a measured
-50-prompt evaluation at **92.5%** in-scope / **10/10** rejections.
+**RF-001 … RF-013 done.** Two levels, real model, share links, and a 300-prompt
+evaluation at **99.2%** in-scope (95% CI [97.0, 99.8]) with **60/60** rejections
+and **P95 10.3s** (target <= 15s).
 
-Evaluation lives in `tests/eval/prompts.json` (corpus) and
-`apps/api/eval/run_eval.py` (runner). Read `docs/EVALUATION.md` before changing
-either. Rules learned from it:
-- the system prompt must list **each action with its exact parameter names and
-  ranges**. Without them the model guessed `scale`/`multiplier` and every such
-  rule failed validation.
-- the compiler fills level-scoped ids (`checkpointId`, `platformId`) from the
-  level's own capabilities; the model has never seen the level.
-- every registered event must actually be emitted. `timer.interval` was declared
-  but never fired, so rules using it looked enabled and did nothing.
-- an unknown action parameter is **rejected**, never silently dropped. Dropping
-  `scale: 100` and defaulting `factor` to 1.2 turned a 100x request into 1.2x.
-- when measuring, check whether a failure is the product's or the *test's*. Four
-  of the first-round failures were wrong expectations (one rule may carry two
-  actions), and "fixing" them would have broken working behaviour.
+Evaluation: `tests/eval/generate_corpus.py` produces `prompts.json`;
+`apps/api/eval/run_eval.py` runs it. Read `docs/EVALUATION.md` first.
+- the corpus is **generated, not hand-edited**. A test asserts the JSON matches the
+  generator, because hand edits drift the category counts.
+- bilingual variants must be **authored, not mechanically wrapped**. Wrapping
+  sentences in 当…时 produced ungrammatical Chinese that the model rightly refused,
+  and it looked like a product defect.
+
+Rules this evaluation established:
+- the system prompt lists every action with its **exact parameter names and
+  ranges**, and states that level-scoped ids may be omitted (the server fills them).
+- the compiler fills level ids from the level's own capabilities.
+- every registered event must actually be emitted (`timer.interval` was not).
+- unknown action parameters are rejected, never silently dropped.
+- when measuring, decide whether a failure belongs to the product or to the *test*.
+  Five failures across two rounds were my own bad data; "fixing" the product for
+  them would have broken working behaviour.
 
 Quality gates that must stay green:
 
@@ -70,6 +73,6 @@ cd apps/api && uv run pytest -q && uv run ruff check .
 
 ## Next task
 
-P95 latency is the one target still missed (28.6s vs 15s). That needs a product
-decision: raise `max_tokens` further, or stop retrying truncated generations and
-ask the player to simplify. Do not pick silently.
+The corpus is generated rather than taken from real player input, and each prompt is
+sampled once. The honest next measurement is stability: run the same corpus three
+times and report variance, or collect real player prompts.

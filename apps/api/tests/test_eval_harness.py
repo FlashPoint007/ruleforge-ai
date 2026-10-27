@@ -16,6 +16,28 @@ from eval.run_eval import load_corpus, run
 REPORT_DIR = Path(__file__).resolve().parents[3] / "tests" / "eval" / "reports"
 
 
+def test_corpus_was_generated_not_hand_edited():
+    """The JSON must match what the generator produces.
+
+    Hand-editing the corpus would let the counts drift from the categories the
+    spec requires, which is exactly what the generator's assert prevents.
+    """
+    import subprocess
+    import sys
+
+    generator = Path(__file__).resolve().parents[3] / "tests" / "eval" / "generate_corpus.py"
+    before = (Path(__file__).resolve().parents[3] / "tests" / "eval" / "prompts.json").read_text(
+        encoding="utf-8"
+    )
+
+    subprocess.run([sys.executable, str(generator)], check=True, capture_output=True)
+
+    after = (Path(__file__).resolve().parents[3] / "tests" / "eval" / "prompts.json").read_text(
+        encoding="utf-8"
+    )
+    assert before == after, "prompts.json is out of sync with generate_corpus.py"
+
+
 def test_corpus_has_the_five_required_categories():
     corpus = load_corpus()
     counts: dict[str, int] = {}
@@ -23,13 +45,13 @@ def test_corpus_has_the_five_required_categories():
         counts[case["category"]] = counts.get(case["category"], 0) + 1
 
     assert counts == {
-        "simple": 10,
-        "combined": 15,
-        "conditional": 10,
-        "rejected": 10,
-        "bilingual": 5,
+        "simple": 60,
+        "combined": 90,
+        "conditional": 60,
+        "rejected": 60,
+        "bilingual": 30,
     }
-    assert len(corpus["prompts"]) == 50
+    assert len(corpus["prompts"]) == 300
 
 
 def test_every_case_declares_a_prompt_and_an_expectation():

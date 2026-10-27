@@ -57,6 +57,9 @@ Hard rules:
   different rule than the one they asked for.
 - Use the exact parameter names listed for each action. An unknown parameter is
   rejected by the server, so a guess fails the whole request.
+- For "a level-defined id" parameters you may omit the value entirely: the server
+  fills a valid one from the level. Never refuse a request merely because you do
+  not know a platform or checkpoint id.
 - An empty rules array with status "ok" is invalid.
 
 Allowed events: {events}
