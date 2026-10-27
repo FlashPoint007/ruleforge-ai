@@ -39,22 +39,24 @@ The player describes a rule in natural language. A server-side LLM returns contr
 
 ## Current milestone
 
-**RF-001 … RF-011 done.** Two playable levels, real model generation, and shareable
-challenge links.
+**RF-001 … RF-012 done.** Two levels, real model, share links, and a measured
+50-prompt evaluation at **92.5%** in-scope / **10/10** rejections.
 
-Levels:
-- `game-content/levels/` is the single source of truth. Adding a level means adding
-  a JSON file and registering it in `apps/web/src/game/levels/levelRegistry.ts`.
-- the server derives `LevelCapabilities` by reading those files
-  (`app/services/levels.py`). Do not hand-maintain a capability table again: the
-  hand-written one silently disagreed with the level contents.
-- `GameScene` takes a level id in its constructor, so one scene instance is tied to
-  one level. Switching levels rebuilds the game; never mutate a live scene.
-- anything drawn from level state (HUD labels included) must come from the loaded
-  level, not a constant. The HUD claimed "lab-01" while lab-02 was running.
-
-Test policy: anything that calls the real model is opt-in via
-`RULEFORGE_LIVE_TESTS=1` (backend pytest and Playwright alike).
+Evaluation lives in `tests/eval/prompts.json` (corpus) and
+`apps/api/eval/run_eval.py` (runner). Read `docs/EVALUATION.md` before changing
+either. Rules learned from it:
+- the system prompt must list **each action with its exact parameter names and
+  ranges**. Without them the model guessed `scale`/`multiplier` and every such
+  rule failed validation.
+- the compiler fills level-scoped ids (`checkpointId`, `platformId`) from the
+  level's own capabilities; the model has never seen the level.
+- every registered event must actually be emitted. `timer.interval` was declared
+  but never fired, so rules using it looked enabled and did nothing.
+- an unknown action parameter is **rejected**, never silently dropped. Dropping
+  `scale: 100` and defaulting `factor` to 1.2 turned a 100x request into 1.2x.
+- when measuring, check whether a failure is the product's or the *test's*. Four
+  of the first-round failures were wrong expectations (one rule may carry two
+  actions), and "fixing" them would have broken working behaviour.
 
 Quality gates that must stay green:
 
@@ -68,6 +70,6 @@ cd apps/api && uv run pytest -q && uv run ruff check .
 
 ## Next task
 
-**RF-012: the 50-prompt evaluation set** (spec 9.2). Two levels exist and the
-pipeline is real; the open question is how often natural language actually
-compiles into a rule the player meant. That needs measurement, not more features.
+P95 latency is the one target still missed (28.6s vs 15s). That needs a product
+decision: raise `max_tokens` further, or stop retrying truncated generations and
+ask the player to simplify. Do not pick silently.

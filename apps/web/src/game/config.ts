@@ -36,6 +36,12 @@ export const CAMERA = {
   offsetY: 40,
 } as const;
 
+/** Periodic event cadence. Spec 4.6: the shortest allowed interval is 500ms. */
+export const TIMER = {
+  intervalMs: 1000,
+  minIntervalMs: 500,
+} as const;
+
 export const RESPAWN = {
   fadeMs: 320,
   invulnerableMs: 900,

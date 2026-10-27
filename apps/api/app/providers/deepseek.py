@@ -20,6 +20,8 @@ from app.domain.registry import (
     P0_CONDITION_OPERATORS,
     P0_EVENTS,
     P0_FACT_PATHS,
+    PARAM_BOUNDS,
+    allowed_params,
 )
 
 SYSTEM_PROMPT = """You are the compiler front-end for RuleForge, a game where the player
@@ -49,6 +51,12 @@ Hard rules:
 - Conditions may use "all"/"any" groups at most 2 levels deep.
 - If the request cannot be expressed with the allowed vocabulary, return
   {"status":"unsupported","rules":[],"explanation":"<why>","warnings":[]}.
+- If the player asks for a quantity or intensity outside these ranges (for example
+  100x jump height, or unlimited enemies), return "unsupported" and say why.
+  Never substitute a legal value and claim success: the player would get a
+  different rule than the one they asked for.
+- Use the exact parameter names listed for each action. An unknown parameter is
+  rejected by the server, so a guess fails the whole request.
 - An empty rules array with status "ok" is invalid.
 
 Allowed events: {events}
@@ -56,6 +64,36 @@ Allowed actions: {actions}
 Allowed condition operators: {operators}
 Allowed facts: {facts}
 """.strip()
+
+
+def _action_catalogue() -> str:
+    """Renders each action with the parameter names the server actually accepts.
+
+    Omitting this left the model to guess, and it guessed plausible-but-wrong
+    names ("scale", "multiplier") that the validator then had to reject.
+    """
+    lines: list[str] = []
+
+    for action in P0_ACTIONS:
+        parts: list[str] = []
+
+        for name, (low, high) in PARAM_BOUNDS.get(action, {}).items():
+            parts.append(f"{name}: {low}-{high}")
+
+        if action == "platform.visibility.set":
+            parts.append("visible: true|false")
+        if action == "platform.visibility.set":
+            parts.append("platformId: a level-defined id")
+        if action == "checkpoint.activate":
+            parts.append("checkpointId: a level-defined id")
+
+        if "durationMs" in allowed_params(action):
+            parts.append("durationMs: 0-10000 (optional)")
+
+        rendered = ", ".join(parts) if parts else "no parameters"
+        lines.append(f"  - {action} ({rendered})")
+
+    return "\n" + "\n".join(lines)
 
 
 def build_system_prompt() -> str:
@@ -69,7 +107,7 @@ def build_system_prompt() -> str:
         "{max_conditions}": str(MAX_CONDITIONS_PER_RULE),
         "{max_actions}": str(MAX_ACTIONS_PER_RULE),
         "{events}": ", ".join(P0_EVENTS),
-        "{actions}": ", ".join(P0_ACTIONS),
+        "{actions}": _action_catalogue(),
         "{operators}": ", ".join(P0_CONDITION_OPERATORS),
         "{facts}": ", ".join(P0_FACT_PATHS),
     }
@@ -124,7 +162,7 @@ class DeepSeekLLMProvider:
             # Syntax-only guarantee; the compiler still validates everything.
             "response_format": {"type": "json_object"},
             "temperature": 0.2,
-            "max_tokens": 2048,
+            "max_tokens": 3072,
         }
 
         last_error: Exception | None = None

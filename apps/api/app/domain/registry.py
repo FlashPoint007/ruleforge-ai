@@ -103,3 +103,28 @@ WRITE_SET: Final[dict[str, tuple[str, ...]]] = {
     "coin.flee": ("coin.movementMode",),
     "checkpoint.activate": ("player.checkpoint",),
 }
+
+"""Actions that accept a `durationMs` parameter, per spec section 4.5."""
+DURATION_ACTIONS: Final[frozenset[str]] = frozenset(
+    {
+        "player.jump.scale",
+        "player.speed.multiply",
+        "player.shield.grant",
+        "enemy.speed.multiply",
+    }
+)
+
+
+def allowed_params(action_op: str) -> frozenset[str]:
+    """Every parameter name an action actually reads.
+
+    Anything else is a modelling mistake. Accepting it would silently change the
+    rule's meaning: the model sent `scale: 100`, the compiler ignored it and used
+    the default factor, and the player got 1.2x instead of 100x.
+    """
+    names: set[str] = set(PARAM_BOUNDS.get(action_op, {}))
+    names.update(BOOLEAN_PARAMS.get(action_op, ()))
+    names.update(STRING_PARAMS.get(action_op, ()))
+    if action_op in DURATION_ACTIONS:
+        names.add("durationMs")
+    return frozenset(names)

@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 
-import { CAMERA, GAME_HEIGHT, PHYSICS, RESPAWN } from "@/game/config";
+import { CAMERA, GAME_HEIGHT, PHYSICS, RESPAWN, TIMER } from "@/game/config";
 import { Coin } from "@/game/entities/Coin";
 import { Enemy } from "@/game/entities/Enemy";
 import { Player } from "@/game/entities/Player";
@@ -44,6 +44,8 @@ export class GameScene extends Phaser.Scene {
   private enemiesDefeated = 0;
   private hasReachedGoal = false;
   private wasInZone = false;
+  /** Next simulated time at which timer.interval fires. */
+  private nextTimerAtMs: number = TIMER.intervalMs;
   /** Lives are part of the DSL fact surface (player.hp), so they are real state. */
   private lives = 3;
   private shieldUntil = 0;
@@ -124,6 +126,7 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.runtime.emit("level.start", 0);
+    this.nextTimerAtMs = this.simulationNow() + TIMER.intervalMs;
   }
 
   /**
@@ -451,6 +454,27 @@ export class GameScene extends Phaser.Scene {
    * honest mapping for the coin.flee rule. It fires once per entry, not every
    * frame, otherwise the rule would spam the queue.
    */
+  /**
+   * Emits timer.interval on a fixed simulated cadence.
+   *
+   * The event is part of the registered vocabulary, so a rule may listen to it.
+   * It was never emitted, which meant such a rule showed as "enabled" and did
+   * nothing at all — the worst possible failure mode.
+   */
+  private tickTimer(): void {
+    const now = this.simulationNow();
+    const interval = Math.max(TIMER.intervalMs, TIMER.minIntervalMs);
+
+    if (now < this.nextTimerAtMs) {
+      return;
+    }
+
+    // Advance by whole intervals rather than snapping to now, so the cadence does
+    // not drift and a long frame cannot emit a burst.
+    this.nextTimerAtMs += interval;
+    this.runtime.emit("timer.interval", now);
+  }
+
   private checkZoneEntry(): void {
     const playerX = this.player.sprite.x;
     const playerY = this.player.sprite.y;
@@ -585,6 +609,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.checkZoneEntry();
+    this.tickTimer();
 
     this.runtime.tick(this.simulationNow());
     this.publishHudState();

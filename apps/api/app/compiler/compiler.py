@@ -72,7 +72,7 @@ class RuleCompiler:
                 warnings=list(document.warnings),
             )
 
-        rules = [self._lower(rule, index) for index, rule in enumerate(document.rules)]
+        rules = [self._lower(rule, index, level) for index, rule in enumerate(document.rules)]
 
         # Layers run in order and short-circuit: a later layer cannot say anything
         # meaningful about a pack whose structure is already broken.
@@ -125,13 +125,23 @@ class RuleCompiler:
             warnings=list(document.warnings),
         )
 
-    def _lower(self, rule: RuleIR, index: int) -> Rule:
+    def _lower(self, rule: RuleIR, index: int, level: LevelCapabilities) -> Rule:
         """Fills ids, targets and default parameters the model left out."""
         actions = []
         for action in rule.actions:
             params = dict(action.params)
             for name, default in PARAM_DEFAULTS.get(action.op, {}).items():
                 params.setdefault(name, default)
+
+            # Level-scoped ids cannot be invented by the model: it has never seen
+            # the level. The compiler has, so it picks a legal default rather than
+            # rejecting a rule the player clearly meant.
+            if action.op == "checkpoint.activate" and not params.get("checkpointId"):
+                params["checkpointId"] = level.checkpoints[0] if level.checkpoints else None
+            if action.op == "platform.visibility.set" and not params.get("platformId"):
+                params["platformId"] = (
+                    level.hideablePlatforms[0] if level.hideablePlatforms else None
+                )
             actions.append(
                 action.model_copy(
                     update={

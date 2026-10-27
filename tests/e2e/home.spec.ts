@@ -636,7 +636,10 @@ test("opening a challenge link and entering the lab applies its rule", async ({ 
   expect(state?.activeRules.join(" ")).toContain("player.gravity.toggle");
 });
 
-test("a missing challenge shows a reason instead of a blank page", async ({ page }) => {
+test("a missing challenge shows a reason instead of a blank page", async ({ page, request }) => {
+  const health = await request.get("http://127.0.0.1:8000/api/v1/healthz").catch(() => null);
+  test.skip(health === null || !health.ok(), "API not running on :8000");
+
   await page.goto("/c/ch_doesnotexist");
 
   await expect(page.getByTestId("challenge-error")).toBeVisible({ timeout: 15_000 });

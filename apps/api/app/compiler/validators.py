@@ -28,6 +28,7 @@ from app.domain.registry import (
     PARAM_BOUNDS,
     STRING_PARAMS,
     WRITE_SET,
+    allowed_params,
 )
 
 """The declared type of each whitelisted fact.
@@ -154,6 +155,17 @@ def validate_types(rules: list[Rule], report: ValidationReport) -> bool:
                         f"{label} action {action.op} needs a non-empty string {name!r}"
                     )
                     ok = False
+
+        for action in rule.actions:
+            permitted = allowed_params(action.op)
+            unknown = sorted(set(action.params) - permitted)
+            if unknown:
+                # Silently dropping an unknown parameter changes what the rule
+                # means while still reporting success.
+                report.errors.append(
+                    f"{label} action {action.op} has unknown parameter(s): {unknown}"
+                )
+                ok = False
 
         for node in _walk_conditions(rule.conditions):
             if not _is_atomic(node):

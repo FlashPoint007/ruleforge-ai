@@ -1,0 +1,987 @@
+{
+  "generatedAt": "2026-10-27T13:57:36+00:00",
+  "provider": "deepseek",
+  "model": "deepseek-flash",
+  "corpusVersion": "1.0.0",
+  "totals": {
+    "cases": 50,
+    "passed": 47,
+    "inScopeCases": 40,
+    "inScopePassed": 37,
+    "inScopeRate": 0.925,
+    "rejectionCases": 10,
+    "rejectionPassed": 10,
+    "p95LatencyMs": 28621,
+    "medianLatencyMs": 3915
+  },
+  "byCategory": {
+    "simple": {
+      "total": 10,
+      "passed": 10
+    },
+    "combined": {
+      "total": 15,
+      "passed": 13
+    },
+    "conditional": {
+      "total": 10,
+      "passed": 9
+    },
+    "rejected": {
+      "total": 10,
+      "passed": 10
+    },
+    "bilingual": {
+      "total": 5,
+      "passed": 5
+    }
+  },
+  "results": [
+    {
+      "promptId": "s01",
+      "category": "simple",
+      "prompt": "每跳一次，重力反转",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "player.gravity.toggle"
+      ],
+      "ruleCount": 1,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 4120,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "s02",
+      "category": "simple",
+      "prompt": "捡到金币后，敌人减速 30%",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "enemy.speed.multiply"
+      ],
+      "ruleCount": 1,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 4999,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "s03",
+      "category": "simple",
+      "prompt": "跳跃高度变成 1.5 倍",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "player.jump.scale"
+      ],
+      "ruleCount": 1,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 2780,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "s04",
+      "category": "simple",
+      "prompt": "玩家移动速度变成 1.5 倍",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "player.speed.multiply"
+      ],
+      "ruleCount": 1,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 3373,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "s05",
+      "category": "simple",
+      "prompt": "踩到敌人后获得护盾",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "player.shield.grant"
+      ],
+      "ruleCount": 1,
+      "hasCondition": false,
+      "hasDuration": true,
+      "latencyMs": 4986,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "s06",
+      "category": "simple",
+      "prompt": "落地时敌人转向",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "enemy.direction.reverse"
+      ],
+      "ruleCount": 1,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 3911,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "s07",
+      "category": "simple",
+      "prompt": "金币会逃跑",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "coin.flee"
+      ],
+      "ruleCount": 1,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 8913,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "s08",
+      "category": "simple",
+      "prompt": "踩到平台后它 2 秒后消失",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "platform.collapseAfter"
+      ],
+      "ruleCount": 1,
+      "hasCondition": false,
+      "hasDuration": true,
+      "latencyMs": 4218,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "s09",
+      "category": "simple",
+      "prompt": "关卡开始时生成一个敌人",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "enemy.spawn"
+      ],
+      "ruleCount": 1,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 2082,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "s10",
+      "category": "simple",
+      "prompt": "关卡开始时生成金币",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "coin.spawn"
+      ],
+      "ruleCount": 1,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 4699,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "c01",
+      "category": "combined",
+      "prompt": "每跳一次重力反转，捡到金币后敌人减速 30% 持续 5 秒",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "player.gravity.toggle",
+        "enemy.speed.multiply"
+      ],
+      "ruleCount": 2,
+      "hasCondition": false,
+      "hasDuration": true,
+      "latencyMs": 28621,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "c02",
+      "category": "combined",
+      "prompt": "跳跃时重力反转，落地时敌人转向",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "player.gravity.toggle",
+        "enemy.direction.reverse"
+      ],
+      "ruleCount": 2,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 6835,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "c03",
+      "category": "combined",
+      "prompt": "捡到金币后玩家加速，同时敌人减速",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "player.speed.multiply",
+        "enemy.speed.multiply"
+      ],
+      "ruleCount": 1,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 3920,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "c04",
+      "category": "combined",
+      "prompt": "每跳一次重力反转；金币会逃跑；踩平台 2 秒后消失",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "player.gravity.toggle",
+        "coin.flee",
+        "platform.collapseAfter"
+      ],
+      "ruleCount": 3,
+      "hasCondition": false,
+      "hasDuration": true,
+      "latencyMs": 32728,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "c05",
+      "category": "combined",
+      "prompt": "落地获得护盾，跳跃高度提高",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "player.shield.grant",
+        "player.jump.scale"
+      ],
+      "ruleCount": 2,
+      "hasCondition": false,
+      "hasDuration": true,
+      "latencyMs": 26841,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "c06",
+      "category": "combined",
+      "prompt": "关卡开始生成敌人和金币",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "enemy.spawn",
+        "coin.spawn"
+      ],
+      "ruleCount": 1,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 2533,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "c07",
+      "category": "combined",
+      "prompt": "捡到金币玩家加速 5 秒，跳跃高度 1.3 倍",
+      "expected": "ready",
+      "generatedStatus": "unsupported",
+      "compiledStatus": "unsupported",
+      "passed": false,
+      "reasons": [
+        "expected ready, got unsupported"
+      ],
+      "ops": [],
+      "ruleCount": 0,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 6179,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "c08",
+      "category": "combined",
+      "prompt": "踩敌人后敌人转向，玩家获得护盾",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "enemy.direction.reverse",
+        "player.shield.grant"
+      ],
+      "ruleCount": 1,
+      "hasCondition": false,
+      "hasDuration": true,
+      "latencyMs": 5147,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "c09",
+      "category": "combined",
+      "prompt": "每跳一次重力反转，落地时敌人减速",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "player.gravity.toggle",
+        "enemy.speed.multiply"
+      ],
+      "ruleCount": 2,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 29062,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "c10",
+      "category": "combined",
+      "prompt": "金币逃跑，敌人减速，玩家加速",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "coin.flee",
+        "enemy.speed.multiply",
+        "player.speed.multiply"
+      ],
+      "ruleCount": 2,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 9154,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "c11",
+      "category": "combined",
+      "prompt": "关卡开始激活检查点，并生成金币",
+      "expected": "ready",
+      "generatedStatus": "unsupported",
+      "compiledStatus": "unsupported",
+      "passed": false,
+      "reasons": [
+        "expected ready, got unsupported"
+      ],
+      "ops": [],
+      "ruleCount": 0,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 3833,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "c12",
+      "category": "combined",
+      "prompt": "跳跃时玩家加速，落地时护盾",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "player.speed.multiply",
+        "player.shield.grant"
+      ],
+      "ruleCount": 2,
+      "hasCondition": false,
+      "hasDuration": true,
+      "latencyMs": 5519,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "c13",
+      "category": "combined",
+      "prompt": "踩平台后它消失，同时敌人转向",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "platform.collapseAfter",
+        "enemy.direction.reverse"
+      ],
+      "ruleCount": 1,
+      "hasCondition": false,
+      "hasDuration": true,
+      "latencyMs": 4328,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "c14",
+      "category": "combined",
+      "prompt": "捡金币后敌人减速，并且金币会逃跑",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "enemy.speed.multiply",
+        "coin.flee"
+      ],
+      "ruleCount": 1,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 4327,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "c15",
+      "category": "combined",
+      "prompt": "重力反转，敌人减速，玩家跳跃更高",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "player.gravity.toggle",
+        "player.jump.scale",
+        "enemy.speed.multiply"
+      ],
+      "ruleCount": 2,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 7778,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "k01",
+      "category": "conditional",
+      "prompt": "收集 3 个金币后，跳跃高度变成 1.5 倍",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "player.jump.scale"
+      ],
+      "ruleCount": 1,
+      "hasCondition": true,
+      "hasDuration": false,
+      "latencyMs": 2959,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "k02",
+      "category": "conditional",
+      "prompt": "当金币数不少于 5 时，敌人减速",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "enemy.speed.multiply"
+      ],
+      "ruleCount": 1,
+      "hasCondition": true,
+      "hasDuration": true,
+      "latencyMs": 3789,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "k03",
+      "category": "conditional",
+      "prompt": "血量大于 1 时，跳跃高度提高",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "player.jump.scale"
+      ],
+      "ruleCount": 1,
+      "hasCondition": true,
+      "hasDuration": false,
+      "latencyMs": 5053,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "k04",
+      "category": "conditional",
+      "prompt": "重力反转后，敌人减速 5 秒",
+      "expected": "ready",
+      "generatedStatus": "unsupported",
+      "compiledStatus": "unsupported",
+      "passed": false,
+      "reasons": [
+        "expected ready, got unsupported"
+      ],
+      "ops": [],
+      "ruleCount": 0,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 4653,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "k05",
+      "category": "conditional",
+      "prompt": "捡到金币后敌人减速 3 秒",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "enemy.speed.multiply"
+      ],
+      "ruleCount": 1,
+      "hasCondition": false,
+      "hasDuration": true,
+      "latencyMs": 4626,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "k06",
+      "category": "conditional",
+      "prompt": "踩到平台后 1 秒它消失",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "platform.collapseAfter"
+      ],
+      "ruleCount": 1,
+      "hasCondition": false,
+      "hasDuration": true,
+      "latencyMs": 3731,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "k07",
+      "category": "conditional",
+      "prompt": "收集 2 个金币后护盾持续 4 秒",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "player.shield.grant"
+      ],
+      "ruleCount": 1,
+      "hasCondition": true,
+      "hasDuration": true,
+      "latencyMs": 3210,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "k08",
+      "category": "conditional",
+      "prompt": "当玩家在地面时，跳跃高度 1.2 倍",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "player.jump.scale"
+      ],
+      "ruleCount": 1,
+      "hasCondition": true,
+      "hasDuration": false,
+      "latencyMs": 2264,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "k09",
+      "category": "conditional",
+      "prompt": "敌人减速持续 8 秒",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "enemy.speed.multiply"
+      ],
+      "ruleCount": 1,
+      "hasCondition": false,
+      "hasDuration": true,
+      "latencyMs": 3807,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "k10",
+      "category": "conditional",
+      "prompt": "收集 4 个金币后敌人转向",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "enemy.direction.reverse"
+      ],
+      "ruleCount": 1,
+      "hasCondition": true,
+      "hasDuration": false,
+      "latencyMs": 4368,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "r01",
+      "category": "rejected",
+      "prompt": "生成无限多的敌人",
+      "expected": "rejected",
+      "generatedStatus": "unsupported",
+      "compiledStatus": "unsupported",
+      "passed": true,
+      "reasons": [],
+      "ops": [],
+      "ruleCount": 0,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 2001,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "r02",
+      "category": "rejected",
+      "prompt": "执行一段脚本让玩家瞬移",
+      "expected": "rejected",
+      "generatedStatus": "unsupported",
+      "compiledStatus": "unsupported",
+      "passed": true,
+      "reasons": [],
+      "ops": [],
+      "ruleCount": 0,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 1976,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "r03",
+      "category": "rejected",
+      "prompt": "让重力同时朝上和朝下",
+      "expected": "rejected",
+      "generatedStatus": "unsupported",
+      "compiledStatus": "unsupported",
+      "passed": true,
+      "reasons": [],
+      "ops": [],
+      "ruleCount": 0,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 2152,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "r04",
+      "category": "rejected",
+      "prompt": "护盾持续一小时",
+      "expected": "rejected",
+      "generatedStatus": "unsupported",
+      "compiledStatus": "unsupported",
+      "passed": true,
+      "reasons": [],
+      "ops": [],
+      "ruleCount": 0,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 2329,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "r05",
+      "category": "rejected",
+      "prompt": "让我飞起来去月球",
+      "expected": "rejected",
+      "generatedStatus": "unsupported",
+      "compiledStatus": "unsupported",
+      "passed": true,
+      "reasons": [],
+      "ops": [],
+      "ruleCount": 0,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 1683,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "r06",
+      "category": "rejected",
+      "prompt": "删除整个关卡",
+      "expected": "rejected",
+      "generatedStatus": "unsupported",
+      "compiledStatus": "unsupported",
+      "passed": true,
+      "reasons": [],
+      "ops": [],
+      "ruleCount": 0,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 1740,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "r07",
+      "category": "rejected",
+      "prompt": "读取玩家的密码",
+      "expected": "rejected",
+      "generatedStatus": "unsupported",
+      "compiledStatus": "unsupported",
+      "passed": true,
+      "reasons": [],
+      "ops": [],
+      "ruleCount": 0,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 1981,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "r08",
+      "category": "rejected",
+      "prompt": "把敌人数量设为一百万",
+      "expected": "rejected",
+      "generatedStatus": "unsupported",
+      "compiledStatus": "unsupported",
+      "passed": true,
+      "reasons": [],
+      "ops": [],
+      "ruleCount": 0,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 2003,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "r09",
+      "category": "rejected",
+      "prompt": "跳跃高度变成 100 倍",
+      "expected": "rejected",
+      "generatedStatus": "unsupported",
+      "compiledStatus": "unsupported",
+      "passed": true,
+      "reasons": [],
+      "ops": [],
+      "ruleCount": 0,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 2018,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "r10",
+      "category": "rejected",
+      "prompt": "让玩家无敌并且永远不死，同时生命值归零",
+      "expected": "rejected",
+      "generatedStatus": "unsupported",
+      "compiledStatus": "unsupported",
+      "passed": true,
+      "reasons": [],
+      "ops": [],
+      "ruleCount": 0,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 2502,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "b01",
+      "category": "bilingual",
+      "prompt": "每跳一次，重力反转",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "player.gravity.toggle"
+      ],
+      "ruleCount": 1,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 2525,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "b02",
+      "category": "bilingual",
+      "prompt": "捡到金币后敌人减速",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "enemy.speed.multiply"
+      ],
+      "ruleCount": 1,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 5267,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "b03",
+      "category": "bilingual",
+      "prompt": "跳跃高度变成 1.5 倍",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "player.jump.scale"
+      ],
+      "ruleCount": 1,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 2972,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "b04",
+      "category": "bilingual",
+      "prompt": "金币会逃跑",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "coin.flee"
+      ],
+      "ruleCount": 1,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 6188,
+      "model": "deepseek-flash",
+      "errors": []
+    },
+    {
+      "promptId": "b05",
+      "category": "bilingual",
+      "prompt": "玩家移动速度变成 1.5 倍",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "player.speed.multiply"
+      ],
+      "ruleCount": 1,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 2098,
+      "model": "deepseek-flash",
+      "errors": []
+    }
+  ]
+}

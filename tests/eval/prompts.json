@@ -1,0 +1,389 @@
+{
+  "version": "1.0.0",
+  "description": "50-prompt evaluation set (spec 9.2). Each entry states what a correct system should do.",
+  "categories": {
+    "simple": "简单 10：单一触发 + 单一动作",
+    "combined": "组合 15：一段话生成 2-3 条规则",
+    "conditional": "条件/计数 10：每 N 次、限定对象、持续 N 秒",
+    "rejected": "冲突/超范围 10：必须拒绝",
+    "bilingual": "中英等价 5：同语义不同语言"
+  },
+  "prompts": [
+    {
+      "id": "s01",
+      "category": "simple",
+      "prompt": "每跳一次，重力反转",
+      "expect": "ready",
+      "expectOps": [
+        "player.gravity.toggle"
+      ]
+    },
+    {
+      "id": "s02",
+      "category": "simple",
+      "prompt": "捡到金币后，敌人减速 30%",
+      "expect": "ready",
+      "expectOps": [
+        "enemy.speed.multiply"
+      ]
+    },
+    {
+      "id": "s03",
+      "category": "simple",
+      "prompt": "跳跃高度变成 1.5 倍",
+      "expect": "ready",
+      "expectOps": [
+        "player.jump.scale"
+      ]
+    },
+    {
+      "id": "s04",
+      "category": "simple",
+      "prompt": "玩家移动速度变成 1.5 倍",
+      "expect": "ready",
+      "expectOps": [
+        "player.speed.multiply"
+      ]
+    },
+    {
+      "id": "s05",
+      "category": "simple",
+      "prompt": "踩到敌人后获得护盾",
+      "expect": "ready",
+      "expectOps": [
+        "player.shield.grant"
+      ]
+    },
+    {
+      "id": "s06",
+      "category": "simple",
+      "prompt": "落地时敌人转向",
+      "expect": "ready",
+      "expectOps": [
+        "enemy.direction.reverse"
+      ]
+    },
+    {
+      "id": "s07",
+      "category": "simple",
+      "prompt": "金币会逃跑",
+      "expect": "ready",
+      "expectOps": [
+        "coin.flee"
+      ]
+    },
+    {
+      "id": "s08",
+      "category": "simple",
+      "prompt": "踩到平台后它 2 秒后消失",
+      "expect": "ready",
+      "expectOps": [
+        "platform.collapseAfter"
+      ]
+    },
+    {
+      "id": "s09",
+      "category": "simple",
+      "prompt": "关卡开始时生成一个敌人",
+      "expect": "ready",
+      "expectOps": [
+        "enemy.spawn"
+      ]
+    },
+    {
+      "id": "s10",
+      "category": "simple",
+      "prompt": "关卡开始时生成金币",
+      "expect": "ready",
+      "expectOps": [
+        "coin.spawn"
+      ]
+    },
+    {
+      "id": "c01",
+      "category": "combined",
+      "prompt": "每跳一次重力反转，捡到金币后敌人减速 30% 持续 5 秒",
+      "expect": "ready",
+      "minRules": 2
+    },
+    {
+      "id": "c02",
+      "category": "combined",
+      "prompt": "跳跃时重力反转，落地时敌人转向",
+      "expect": "ready",
+      "minRules": 2
+    },
+    {
+      "id": "c03",
+      "category": "combined",
+      "prompt": "捡到金币后玩家加速，同时敌人减速",
+      "expect": "ready",
+      "minRules": 1,
+      "note": "2 actions may share one rule (spec 4.5), so the floor is ceil(actions/2)"
+    },
+    {
+      "id": "c04",
+      "category": "combined",
+      "prompt": "每跳一次重力反转；金币会逃跑；踩平台 2 秒后消失",
+      "expect": "ready",
+      "minRules": 3
+    },
+    {
+      "id": "c05",
+      "category": "combined",
+      "prompt": "落地获得护盾，跳跃高度提高",
+      "expect": "ready",
+      "minRules": 1,
+      "note": "2 actions may share one rule (spec 4.5), so the floor is ceil(actions/2)"
+    },
+    {
+      "id": "c06",
+      "category": "combined",
+      "prompt": "关卡开始生成敌人和金币",
+      "expect": "ready",
+      "minRules": 1,
+      "note": "2 actions may share one rule (spec 4.5), so the floor is ceil(actions/2)"
+    },
+    {
+      "id": "c07",
+      "category": "combined",
+      "prompt": "捡到金币玩家加速 5 秒，跳跃高度 1.3 倍",
+      "expect": "ready",
+      "minRules": 1,
+      "note": "2 actions may share one rule (spec 4.5), so the floor is ceil(actions/2)"
+    },
+    {
+      "id": "c08",
+      "category": "combined",
+      "prompt": "踩敌人后敌人转向，玩家获得护盾",
+      "expect": "ready",
+      "minRules": 1,
+      "note": "2 actions may share one rule (spec 4.5), so the floor is ceil(actions/2)"
+    },
+    {
+      "id": "c09",
+      "category": "combined",
+      "prompt": "每跳一次重力反转，落地时敌人减速",
+      "expect": "ready",
+      "minRules": 2
+    },
+    {
+      "id": "c10",
+      "category": "combined",
+      "prompt": "金币逃跑，敌人减速，玩家加速",
+      "expect": "ready",
+      "minRules": 2,
+      "note": "2 actions may share one rule (spec 4.5), so the floor is ceil(actions/2)"
+    },
+    {
+      "id": "c11",
+      "category": "combined",
+      "prompt": "关卡开始激活检查点，并生成金币",
+      "expect": "ready",
+      "minRules": 1,
+      "note": "2 actions may share one rule (spec 4.5), so the floor is ceil(actions/2)"
+    },
+    {
+      "id": "c12",
+      "category": "combined",
+      "prompt": "跳跃时玩家加速，落地时护盾",
+      "expect": "ready",
+      "minRules": 2
+    },
+    {
+      "id": "c13",
+      "category": "combined",
+      "prompt": "踩平台后它消失，同时敌人转向",
+      "expect": "ready",
+      "minRules": 1,
+      "note": "2 actions may share one rule (spec 4.5), so the floor is ceil(actions/2)"
+    },
+    {
+      "id": "c14",
+      "category": "combined",
+      "prompt": "捡金币后敌人减速，并且金币会逃跑",
+      "expect": "ready",
+      "minRules": 1,
+      "note": "2 actions may share one rule (spec 4.5), so the floor is ceil(actions/2)"
+    },
+    {
+      "id": "c15",
+      "category": "combined",
+      "prompt": "重力反转，敌人减速，玩家跳跃更高",
+      "expect": "ready",
+      "minRules": 2,
+      "note": "2 actions may share one rule (spec 4.5), so the floor is ceil(actions/2)"
+    },
+    {
+      "id": "k01",
+      "category": "conditional",
+      "prompt": "收集 3 个金币后，跳跃高度变成 1.5 倍",
+      "expect": "ready",
+      "needsCondition": true
+    },
+    {
+      "id": "k02",
+      "category": "conditional",
+      "prompt": "当金币数不少于 5 时，敌人减速",
+      "expect": "ready",
+      "needsCondition": true
+    },
+    {
+      "id": "k03",
+      "category": "conditional",
+      "prompt": "血量大于 1 时，跳跃高度提高",
+      "expect": "ready",
+      "needsCondition": true
+    },
+    {
+      "id": "k04",
+      "category": "conditional",
+      "prompt": "重力反转后，敌人减速 5 秒",
+      "expect": "ready"
+    },
+    {
+      "id": "k05",
+      "category": "conditional",
+      "prompt": "捡到金币后敌人减速 3 秒",
+      "expect": "ready",
+      "needsDuration": true
+    },
+    {
+      "id": "k06",
+      "category": "conditional",
+      "prompt": "踩到平台后 1 秒它消失",
+      "expect": "ready",
+      "needsDuration": true
+    },
+    {
+      "id": "k07",
+      "category": "conditional",
+      "prompt": "收集 2 个金币后护盾持续 4 秒",
+      "expect": "ready",
+      "needsCondition": true
+    },
+    {
+      "id": "k08",
+      "category": "conditional",
+      "prompt": "当玩家在地面时，跳跃高度 1.2 倍",
+      "expect": "ready",
+      "needsCondition": true
+    },
+    {
+      "id": "k09",
+      "category": "conditional",
+      "prompt": "敌人减速持续 8 秒",
+      "expect": "ready",
+      "needsDuration": true
+    },
+    {
+      "id": "k10",
+      "category": "conditional",
+      "prompt": "收集 4 个金币后敌人转向",
+      "expect": "ready",
+      "needsCondition": true
+    },
+    {
+      "id": "r01",
+      "category": "rejected",
+      "prompt": "生成无限多的敌人",
+      "expect": "rejected"
+    },
+    {
+      "id": "r02",
+      "category": "rejected",
+      "prompt": "执行一段脚本让玩家瞬移",
+      "expect": "rejected"
+    },
+    {
+      "id": "r03",
+      "category": "rejected",
+      "prompt": "让重力同时朝上和朝下",
+      "expect": "rejected"
+    },
+    {
+      "id": "r04",
+      "category": "rejected",
+      "prompt": "护盾持续一小时",
+      "expect": "rejected"
+    },
+    {
+      "id": "r05",
+      "category": "rejected",
+      "prompt": "让我飞起来去月球",
+      "expect": "rejected"
+    },
+    {
+      "id": "r06",
+      "category": "rejected",
+      "prompt": "删除整个关卡",
+      "expect": "rejected"
+    },
+    {
+      "id": "r07",
+      "category": "rejected",
+      "prompt": "读取玩家的密码",
+      "expect": "rejected"
+    },
+    {
+      "id": "r08",
+      "category": "rejected",
+      "prompt": "把敌人数量设为一百万",
+      "expect": "rejected"
+    },
+    {
+      "id": "r09",
+      "category": "rejected",
+      "prompt": "跳跃高度变成 100 倍",
+      "expect": "rejected"
+    },
+    {
+      "id": "r10",
+      "category": "rejected",
+      "prompt": "让玩家无敌并且永远不死，同时生命值归零",
+      "expect": "rejected"
+    },
+    {
+      "id": "b01",
+      "category": "bilingual",
+      "prompt": "每跳一次，重力反转",
+      "pair": "b01-en",
+      "expect": "ready"
+    },
+    {
+      "id": "b02",
+      "category": "bilingual",
+      "prompt": "捡到金币后敌人减速",
+      "pair": "b02-en",
+      "expect": "ready"
+    },
+    {
+      "id": "b03",
+      "category": "bilingual",
+      "prompt": "跳跃高度变成 1.5 倍",
+      "pair": "b03-en",
+      "expect": "ready"
+    },
+    {
+      "id": "b04",
+      "category": "bilingual",
+      "prompt": "金币会逃跑",
+      "pair": "b04-en",
+      "expect": "ready"
+    },
+    {
+      "id": "b05",
+      "category": "bilingual",
+      "prompt": "玩家移动速度变成 1.5 倍",
+      "pair": "b05-en",
+      "expect": "ready"
+    }
+  ],
+  "englishPairs": {
+    "b01-en": "Every time the player jumps, flip gravity.",
+    "b02-en": "After collecting a coin, slow all enemies down.",
+    "b03-en": "Make the jump height 1.5 times higher.",
+    "b04-en": "Make the coins run away from the player.",
+    "b05-en": "Make the player move 1.5 times faster."
+  }
+}

@@ -3,7 +3,7 @@
 > 用一句自然语言描述一条规则，得到一个经过确定性编译、可验证、可回放的关卡玩法。
 > Describe a rule in plain language — get a deterministic, validated, replayable game rule.
 
-**当前状态：M5 起步（RF-011）。两个可玩关卡 · 一句话生成规则 · 分享链接可玩。MVP 关卡数量已达标。**
+**当前状态：M5 完成（RF-012）。两个可玩关卡 · 真实模型生成 · 分享链接可玩 · 50 条 Prompt 评测通过（92.5%）。**
 本项目处于开发早期，README 只描述**已经可以运行**的东西，不描述计划中的能力。
 
 ---
@@ -256,6 +256,26 @@ cp apps/web/.env.example apps/web/.env
 ```
 
 `VITE_*` 变量会被打包进客户端，**严禁**在其中放 DeepSeek Key 或任何云凭据。
+
+## 评测（真实模型实测）
+
+50 条 Prompt 的评测结果（deepseek-flash，真实 API）：
+
+| 指标 | 结果 | 目标 |
+|---|---|---|
+| 能力范围内可编译率 | **92.5%**（37/40） | ≥ 90% ✅ |
+| 应拒绝项正确拒绝 | **10/10** | — ✅ |
+| 中英等价 | 5/5 | — ✅ |
+| 延迟中位数 / P95 | 3.9s / **28.6s** | P95 ≤ 15s ❌ |
+
+详细分析、置信区间限制与首轮 77.5% → 92.5% 的修复过程见
+[`docs/EVALUATION.md`](docs/EVALUATION.md)。
+
+```bash
+cd apps/api
+uv run python eval/run_eval.py --provider mock      # 不花配额，CI 用
+uv run python eval/run_eval.py --provider deepseek  # 真实数据
+```
 
 ## 测试与质量检查
 
