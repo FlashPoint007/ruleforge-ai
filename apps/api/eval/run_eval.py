@@ -153,9 +153,46 @@ def evaluate_case(
     return result
 
 
-async def run(provider_name: str, *, limit: int | None = None) -> dict[str, Any]:
+def stratified_sample(cases: list[dict[str, Any]], sample: int) -> list[dict[str, Any]]:
+    """Picks a representative subset that keeps every category proportional.
+
+    Stability is measured on the sample, not the whole corpus, so the sample must
+    not silently drop a category: a category with no cases would look perfectly
+    stable because nothing was measured.
+    """
+    if sample >= len(cases):
+        return cases
+
+    by_category: dict[str, list[dict[str, Any]]] = {}
+    for case in cases:
+        by_category.setdefault(case["category"], []).append(case)
+
+    chosen: list[dict[str, Any]] = []
+    total = len(cases)
+    for group in by_category.values():
+        share = max(1, round(sample * len(group) / total))
+        if share >= len(group):
+            chosen.extend(group)
+            continue
+        # Even stride rather than the first N: taking a prefix would sample only
+        # the earliest variants of each category and hide the rest.
+        stride = len(group) / share
+        chosen.extend(group[int(index * stride)] for index in range(share))
+
+    return chosen[:sample]
+
+
+async def run(
+    provider_name: str,
+    *,
+    limit: int | None = None,
+    repeats: int = 1,
+    sample: int | None = None,
+) -> dict[str, Any]:
     corpus = load_corpus()
     cases = corpus["prompts"][:limit] if limit else corpus["prompts"]
+    if sample:
+        cases = stratified_sample(cases, sample)
 
     if provider_name == "mock":
         provider = MockLLMProvider()
@@ -166,42 +203,112 @@ async def run(provider_name: str, *, limit: int | None = None) -> dict[str, Any]
 
     compiler = RuleCompiler()
     results: list[CaseResult] = []
+    runs: list[list[CaseResult]] = []
+
+    for attempt in range(repeats):
+        attempt_results: list[CaseResult] = []
+
+        for case in cases:
+            started = time.perf_counter()
+            try:
+                document = await provider.generate(
+                    case["prompt"], level_id="lab-01", locale="zh-CN"
+                )
+                latency_ms = int((time.perf_counter() - started) * 1000)
+                parsed = parse_ir(document)
+                compiled = compiler.compile(parsed, level=level_for(case))
+                attempt_results.append(
+                    evaluate_case(
+                        case,
+                        document=document,
+                        compiled=compiled,
+                        latency_ms=latency_ms,
+                        model=model,
+                    )
+                )
+            except Exception as error:  # noqa: BLE001 - a crash is a data point
+                latency_ms = int((time.perf_counter() - started) * 1000)
+                attempt_results.append(
+                    CaseResult(
+                        prompt_id=case["id"],
+                        category=case["category"],
+                        prompt=case["prompt"],
+                        expected=case["expect"],
+                        compiled_status="error",
+                        reasons=[f"runner error: {error}"],
+                        latency_ms=latency_ms,
+                        model=model,
+                        errors=[str(error)],
+                    )
+                )
+
+        runs.append(attempt_results)
+        if attempt == repeats - 1:
+            results = attempt_results
+
+    report = build_report(corpus, results, provider_name, model)
+    if repeats > 1:
+        report["stability"] = build_stability(cases, runs)
+    return report
+
+
+def build_stability(cases: list[dict[str, Any]], runs: list[list[CaseResult]]) -> dict[str, Any]:
+    """Measures whether repeated runs agree.
+
+    A high pass rate that flips between runs is not the same as a reliable system,
+    and only repetition can tell them apart.
+    """
+    by_id: dict[str, list[str]] = {}
+    passed_by_id: dict[str, list[bool]] = {}
+    category_of: dict[str, str] = {}
 
     for case in cases:
-        started = time.perf_counter()
-        try:
-            document = await provider.generate(
-                case["prompt"], level_id="lab-01", locale="zh-CN"
-            )
-            latency_ms = int((time.perf_counter() - started) * 1000)
-            parsed = parse_ir(document)
-            compiled = compiler.compile(parsed, level=level_for(case))
-            results.append(
-                evaluate_case(
-                    case,
-                    document=document,
-                    compiled=compiled,
-                    latency_ms=latency_ms,
-                    model=model,
-                )
-            )
-        except Exception as error:  # noqa: BLE001 - a crash is a data point
-            latency_ms = int((time.perf_counter() - started) * 1000)
-            results.append(
-                CaseResult(
-                    prompt_id=case["id"],
-                    category=case["category"],
-                    prompt=case["prompt"],
-                    expected=case["expect"],
-                    compiled_status="error",
-                    reasons=[f"runner error: {error}"],
-                    latency_ms=latency_ms,
-                    model=model,
-                    errors=[str(error)],
-                )
-            )
+        category_of[case["id"]] = case["category"]
 
-    return build_report(corpus, results, provider_name, model)
+    for attempt in runs:
+        for result in attempt:
+            by_id.setdefault(result.prompt_id, []).append(result.compiled_status)
+            passed_by_id.setdefault(result.prompt_id, []).append(result.passed)
+
+    unstable = [
+        {
+            "promptId": prompt_id,
+            "category": category_of.get(prompt_id, "?"),
+            "statuses": statuses,
+        }
+        for prompt_id, statuses in by_id.items()
+        if len(set(statuses)) > 1
+    ]
+
+    always_passed = sum(1 for values in passed_by_id.values() if all(values))
+    never_passed = sum(1 for values in passed_by_id.values() if not any(values))
+    flaky = len(passed_by_id) - always_passed - never_passed
+
+    pass_rates = [
+        round(sum(1 for r in attempt if r.passed) / len(attempt), 4) for attempt in runs
+    ]
+
+    by_category: dict[str, dict[str, int]] = {}
+    for entry in unstable:
+        bucket = by_category.setdefault(entry["category"], {"cases": 0, "unstable": 0})
+        bucket["cases"] += 1
+
+    categories: dict[str, int] = {}
+    for case in cases:
+        categories[case["category"]] = categories.get(case["category"], 0) + 1
+
+    return {
+        "repeats": len(runs),
+        "casesPerRun": len(cases),
+        "passRatePerRun": pass_rates,
+        "passRateSpread": round(max(pass_rates) - min(pass_rates), 4) if pass_rates else 0.0,
+        "alwaysPassed": always_passed,
+        "neverPassed": never_passed,
+        "flaky": flaky,
+        "verdictFlipRate": round(len(unstable) / len(by_id), 4) if by_id else 0.0,
+        "unstableCases": unstable,
+        "casesByCategory": categories,
+    }
 
 
 def build_report(
@@ -278,10 +385,14 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Run the 50-prompt evaluation set")
     parser.add_argument("--provider", default="mock", choices=["mock", "deepseek"])
     parser.add_argument("--limit", type=int, default=None)
+    parser.add_argument("--repeats", type=int, default=1)
+    parser.add_argument("--sample", type=int, default=None)
     parser.add_argument("--out", default=None)
     args = parser.parse_args()
 
-    report = asyncio.run(run(args.provider, limit=args.limit))
+    report = asyncio.run(
+        run(args.provider, limit=args.limit, repeats=args.repeats, sample=args.sample)
+    )
 
     target = Path(args.out) if args.out else REPORT_DIR / f"report-{args.provider}.json"
     # The reports directory does not exist on a fresh checkout.
@@ -296,6 +407,21 @@ def main() -> None:
     print(f"rejections: {totals['rejectionPassed']}/{totals['rejectionCases']}")
     print(f"p95={totals['p95LatencyMs']}ms median={totals['medianLatencyMs']}ms")
     print(f"report -> {target}")
+
+    stability = report.get("stability")
+    if stability:
+        print()
+        print(f"stability over {stability['repeats']} runs x {stability['casesPerRun']} cases")
+        print(f"  pass rate per run: {stability['passRatePerRun']}")
+        print(f"  spread: {stability['passRateSpread']:.2%}")
+        print(
+            f"  always passed: {stability['alwaysPassed']}"
+            f" | never: {stability['neverPassed']}"
+            f" | flaky: {stability['flaky']}"
+        )
+        print(f"  verdict flip rate: {stability['verdictFlipRate']:.2%}")
+        for entry in stability["unstableCases"][:10]:
+            print(f"    [{entry['promptId']}] {entry['statuses']}")
 
     failures = [r for r in report["results"] if not r["passed"]]
     if failures:

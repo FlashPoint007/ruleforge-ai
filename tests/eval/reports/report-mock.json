@@ -1,39 +1,39 @@
 {
-  "generatedAt": "2026-10-27T13:21:11+00:00",
+  "generatedAt": "2026-10-28T15:16:59+00:00",
   "provider": "mock",
   "model": "mock",
-  "corpusVersion": "1.0.0",
+  "corpusVersion": "2.0.0",
   "totals": {
-    "cases": 50,
-    "passed": 15,
-    "inScopeCases": 40,
-    "inScopePassed": 8,
-    "inScopeRate": 0.2,
-    "rejectionCases": 10,
-    "rejectionPassed": 7,
+    "cases": 10,
+    "passed": 6,
+    "inScopeCases": 8,
+    "inScopePassed": 6,
+    "inScopeRate": 0.75,
+    "rejectionCases": 2,
+    "rejectionPassed": 0,
     "p95LatencyMs": 0,
     "medianLatencyMs": 0
   },
   "byCategory": {
     "simple": {
-      "total": 10,
+      "total": 2,
       "passed": 2
     },
     "combined": {
-      "total": 15,
-      "passed": 0
+      "total": 3,
+      "passed": 3
     },
     "conditional": {
-      "total": 10,
-      "passed": 3
+      "total": 2,
+      "passed": 0
     },
     "rejected": {
-      "total": 10,
-      "passed": 7
+      "total": 2,
+      "passed": 0
     },
     "bilingual": {
-      "total": 5,
-      "passed": 3
+      "total": 1,
+      "passed": 1
     }
   },
   "results": [
@@ -59,7 +59,26 @@
     {
       "promptId": "s02",
       "category": "simple",
-      "prompt": "捡到金币后，敌人减速 30%",
+      "prompt": "落地时，重力反转",
+      "expected": "ready",
+      "generatedStatus": "ok",
+      "compiledStatus": "ready",
+      "passed": true,
+      "reasons": [],
+      "ops": [
+        "player.gravity.toggle"
+      ],
+      "ruleCount": 1,
+      "hasCondition": false,
+      "hasDuration": false,
+      "latencyMs": 0,
+      "model": "mock",
+      "errors": []
+    },
+    {
+      "promptId": "c01",
+      "category": "combined",
+      "prompt": "每跳一次重力反转，捡到金币后跳跃高度变成 1.5 倍",
       "expected": "ready",
       "generatedStatus": "ok",
       "compiledStatus": "ready",
@@ -76,205 +95,14 @@
       "errors": []
     },
     {
-      "promptId": "s03",
-      "category": "simple",
-      "prompt": "跳跃高度变成 1.5 倍",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "rejected",
-      "passed": false,
-      "reasons": [
-        "expected ready, got rejected"
-      ],
-      "ops": [],
-      "ruleCount": 0,
-      "hasCondition": false,
-      "hasDuration": false,
-      "latencyMs": 1,
-      "model": "mock",
-      "errors": [
-        "conflict on 'player.gravity.controller': rule-1:player.gravity.toggle, rule-2:player.gravity.toggle write the same resource"
-      ]
-    },
-    {
-      "promptId": "s04",
-      "category": "simple",
-      "prompt": "玩家移动速度变成 1.5 倍",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "rejected",
-      "passed": false,
-      "reasons": [
-        "expected ready, got rejected"
-      ],
-      "ops": [],
-      "ruleCount": 0,
-      "hasCondition": false,
-      "hasDuration": false,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": [
-        "conflict on 'player.gravity.controller': rule-1:player.gravity.toggle, rule-2:player.gravity.toggle write the same resource"
-      ]
-    },
-    {
-      "promptId": "s05",
-      "category": "simple",
-      "prompt": "踩到敌人后获得护盾",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "ready",
-      "passed": false,
-      "reasons": [
-        "missing expected op(s): ['player.shield.grant']"
-      ],
-      "ops": [
-        "enemy.speed.multiply"
-      ],
-      "ruleCount": 1,
-      "hasCondition": false,
-      "hasDuration": true,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": []
-    },
-    {
-      "promptId": "s06",
-      "category": "simple",
-      "prompt": "落地时敌人转向",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "ready",
-      "passed": false,
-      "reasons": [
-        "missing expected op(s): ['enemy.direction.reverse']"
-      ],
-      "ops": [
-        "enemy.speed.multiply"
-      ],
-      "ruleCount": 1,
-      "hasCondition": false,
-      "hasDuration": true,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": []
-    },
-    {
-      "promptId": "s07",
-      "category": "simple",
-      "prompt": "金币会逃跑",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "ready",
-      "passed": false,
-      "reasons": [
-        "missing expected op(s): ['coin.flee']"
-      ],
-      "ops": [
-        "enemy.speed.multiply"
-      ],
-      "ruleCount": 1,
-      "hasCondition": false,
-      "hasDuration": true,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": []
-    },
-    {
-      "promptId": "s08",
-      "category": "simple",
-      "prompt": "踩到平台后它 2 秒后消失",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "rejected",
-      "passed": false,
-      "reasons": [
-        "expected ready, got rejected"
-      ],
-      "ops": [],
-      "ruleCount": 0,
-      "hasCondition": false,
-      "hasDuration": false,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": [
-        "conflict on 'player.gravity.controller': rule-1:player.gravity.toggle, rule-2:player.gravity.toggle write the same resource"
-      ]
-    },
-    {
-      "promptId": "s09",
-      "category": "simple",
-      "prompt": "关卡开始时生成一个敌人",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "ready",
-      "passed": false,
-      "reasons": [
-        "missing expected op(s): ['enemy.spawn']"
-      ],
-      "ops": [
-        "enemy.speed.multiply"
-      ],
-      "ruleCount": 1,
-      "hasCondition": false,
-      "hasDuration": true,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": []
-    },
-    {
-      "promptId": "s10",
-      "category": "simple",
-      "prompt": "关卡开始时生成金币",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "ready",
-      "passed": false,
-      "reasons": [
-        "missing expected op(s): ['coin.spawn']"
-      ],
-      "ops": [
-        "enemy.speed.multiply"
-      ],
-      "ruleCount": 1,
-      "hasCondition": false,
-      "hasDuration": true,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": []
-    },
-    {
-      "promptId": "c01",
-      "category": "combined",
-      "prompt": "每跳一次重力反转，捡到金币后敌人减速 30% 持续 5 秒",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "ready",
-      "passed": false,
-      "reasons": [
-        "expected >= 2 rules, got 1"
-      ],
-      "ops": [
-        "enemy.speed.multiply"
-      ],
-      "ruleCount": 1,
-      "hasCondition": false,
-      "hasDuration": true,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": []
-    },
-    {
       "promptId": "c02",
       "category": "combined",
-      "prompt": "跳跃时重力反转，落地时敌人转向",
+      "prompt": "每跳一次重力反转，捡到金币后玩家加速",
       "expected": "ready",
       "generatedStatus": "ok",
       "compiledStatus": "ready",
-      "passed": false,
-      "reasons": [
-        "expected >= 2 rules, got 1"
-      ],
+      "passed": true,
+      "reasons": [],
       "ops": [
         "enemy.speed.multiply"
       ],
@@ -288,266 +116,12 @@
     {
       "promptId": "c03",
       "category": "combined",
-      "prompt": "捡到金币后玩家加速，同时敌人减速",
+      "prompt": "每跳一次重力反转，捡到金币后获得护盾",
       "expected": "ready",
       "generatedStatus": "ok",
       "compiledStatus": "ready",
-      "passed": false,
-      "reasons": [
-        "expected >= 2 rules, got 1"
-      ],
-      "ops": [
-        "enemy.speed.multiply"
-      ],
-      "ruleCount": 1,
-      "hasCondition": false,
-      "hasDuration": true,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": []
-    },
-    {
-      "promptId": "c04",
-      "category": "combined",
-      "prompt": "每跳一次重力反转；金币会逃跑；踩平台 2 秒后消失",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "ready",
-      "passed": false,
-      "reasons": [
-        "expected >= 3 rules, got 1"
-      ],
-      "ops": [
-        "enemy.speed.multiply"
-      ],
-      "ruleCount": 1,
-      "hasCondition": false,
-      "hasDuration": true,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": []
-    },
-    {
-      "promptId": "c05",
-      "category": "combined",
-      "prompt": "落地获得护盾，跳跃高度提高",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "rejected",
-      "passed": false,
-      "reasons": [
-        "expected ready, got rejected"
-      ],
-      "ops": [],
-      "ruleCount": 0,
-      "hasCondition": false,
-      "hasDuration": false,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": [
-        "conflict on 'player.gravity.controller': rule-1:player.gravity.toggle, rule-2:player.gravity.toggle write the same resource"
-      ]
-    },
-    {
-      "promptId": "c06",
-      "category": "combined",
-      "prompt": "关卡开始生成敌人和金币",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "ready",
-      "passed": false,
-      "reasons": [
-        "expected >= 2 rules, got 1"
-      ],
-      "ops": [
-        "enemy.speed.multiply"
-      ],
-      "ruleCount": 1,
-      "hasCondition": false,
-      "hasDuration": true,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": []
-    },
-    {
-      "promptId": "c07",
-      "category": "combined",
-      "prompt": "捡到金币玩家加速 5 秒，跳跃高度 1.3 倍",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "ready",
-      "passed": false,
-      "reasons": [
-        "expected >= 2 rules, got 1"
-      ],
-      "ops": [
-        "enemy.speed.multiply"
-      ],
-      "ruleCount": 1,
-      "hasCondition": false,
-      "hasDuration": true,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": []
-    },
-    {
-      "promptId": "c08",
-      "category": "combined",
-      "prompt": "踩敌人后敌人转向，玩家获得护盾",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "ready",
-      "passed": false,
-      "reasons": [
-        "expected >= 2 rules, got 1"
-      ],
-      "ops": [
-        "enemy.speed.multiply"
-      ],
-      "ruleCount": 1,
-      "hasCondition": false,
-      "hasDuration": true,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": []
-    },
-    {
-      "promptId": "c09",
-      "category": "combined",
-      "prompt": "每跳一次重力反转，落地时敌人减速",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "ready",
-      "passed": false,
-      "reasons": [
-        "expected >= 2 rules, got 1"
-      ],
-      "ops": [
-        "enemy.speed.multiply"
-      ],
-      "ruleCount": 1,
-      "hasCondition": false,
-      "hasDuration": true,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": []
-    },
-    {
-      "promptId": "c10",
-      "category": "combined",
-      "prompt": "金币逃跑，敌人减速，玩家加速",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "ready",
-      "passed": false,
-      "reasons": [
-        "expected >= 3 rules, got 1"
-      ],
-      "ops": [
-        "enemy.speed.multiply"
-      ],
-      "ruleCount": 1,
-      "hasCondition": false,
-      "hasDuration": true,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": []
-    },
-    {
-      "promptId": "c11",
-      "category": "combined",
-      "prompt": "关卡开始激活检查点，并生成金币",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "ready",
-      "passed": false,
-      "reasons": [
-        "expected >= 2 rules, got 1"
-      ],
-      "ops": [
-        "enemy.speed.multiply"
-      ],
-      "ruleCount": 1,
-      "hasCondition": false,
-      "hasDuration": true,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": []
-    },
-    {
-      "promptId": "c12",
-      "category": "combined",
-      "prompt": "跳跃时玩家加速，落地时护盾",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "rejected",
-      "passed": false,
-      "reasons": [
-        "expected ready, got rejected"
-      ],
-      "ops": [],
-      "ruleCount": 0,
-      "hasCondition": false,
-      "hasDuration": false,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": [
-        "conflict on 'player.gravity.controller': rule-1:player.gravity.toggle, rule-2:player.gravity.toggle write the same resource"
-      ]
-    },
-    {
-      "promptId": "c13",
-      "category": "combined",
-      "prompt": "踩平台后它消失，同时敌人转向",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "ready",
-      "passed": false,
-      "reasons": [
-        "expected >= 2 rules, got 1"
-      ],
-      "ops": [
-        "enemy.speed.multiply"
-      ],
-      "ruleCount": 1,
-      "hasCondition": false,
-      "hasDuration": true,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": []
-    },
-    {
-      "promptId": "c14",
-      "category": "combined",
-      "prompt": "捡金币后敌人减速，并且金币会逃跑",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "ready",
-      "passed": false,
-      "reasons": [
-        "expected >= 2 rules, got 1"
-      ],
-      "ops": [
-        "enemy.speed.multiply"
-      ],
-      "ruleCount": 1,
-      "hasCondition": false,
-      "hasDuration": true,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": []
-    },
-    {
-      "promptId": "c15",
-      "category": "combined",
-      "prompt": "重力反转，敌人减速，玩家跳跃更高",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "ready",
-      "passed": false,
-      "reasons": [
-        "expected >= 3 rules, got 1"
-      ],
+      "passed": true,
+      "reasons": [],
       "ops": [
         "enemy.speed.multiply"
       ],
@@ -561,7 +135,7 @@
     {
       "promptId": "k01",
       "category": "conditional",
-      "prompt": "收集 3 个金币后，跳跃高度变成 1.5 倍",
+      "prompt": "收集 1 个金币后，跳跃高度提高",
       "expected": "ready",
       "generatedStatus": "ok",
       "compiledStatus": "ready",
@@ -582,169 +156,7 @@
     {
       "promptId": "k02",
       "category": "conditional",
-      "prompt": "当金币数不少于 5 时，敌人减速",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "ready",
-      "passed": false,
-      "reasons": [
-        "expected a condition, got none"
-      ],
-      "ops": [
-        "enemy.speed.multiply"
-      ],
-      "ruleCount": 1,
-      "hasCondition": false,
-      "hasDuration": true,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": []
-    },
-    {
-      "promptId": "k03",
-      "category": "conditional",
-      "prompt": "血量大于 1 时，跳跃高度提高",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "rejected",
-      "passed": false,
-      "reasons": [
-        "expected ready, got rejected"
-      ],
-      "ops": [],
-      "ruleCount": 0,
-      "hasCondition": false,
-      "hasDuration": false,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": [
-        "conflict on 'player.gravity.controller': rule-1:player.gravity.toggle, rule-2:player.gravity.toggle write the same resource"
-      ]
-    },
-    {
-      "promptId": "k04",
-      "category": "conditional",
-      "prompt": "重力反转后，敌人减速 5 秒",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "ready",
-      "passed": true,
-      "reasons": [],
-      "ops": [
-        "enemy.speed.multiply"
-      ],
-      "ruleCount": 1,
-      "hasCondition": false,
-      "hasDuration": true,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": []
-    },
-    {
-      "promptId": "k05",
-      "category": "conditional",
-      "prompt": "捡到金币后敌人减速 3 秒",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "ready",
-      "passed": true,
-      "reasons": [],
-      "ops": [
-        "enemy.speed.multiply"
-      ],
-      "ruleCount": 1,
-      "hasCondition": false,
-      "hasDuration": true,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": []
-    },
-    {
-      "promptId": "k06",
-      "category": "conditional",
-      "prompt": "踩到平台后 1 秒它消失",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "rejected",
-      "passed": false,
-      "reasons": [
-        "expected ready, got rejected"
-      ],
-      "ops": [],
-      "ruleCount": 0,
-      "hasCondition": false,
-      "hasDuration": false,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": [
-        "conflict on 'player.gravity.controller': rule-1:player.gravity.toggle, rule-2:player.gravity.toggle write the same resource"
-      ]
-    },
-    {
-      "promptId": "k07",
-      "category": "conditional",
-      "prompt": "收集 2 个金币后护盾持续 4 秒",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "ready",
-      "passed": false,
-      "reasons": [
-        "expected a condition, got none"
-      ],
-      "ops": [
-        "enemy.speed.multiply"
-      ],
-      "ruleCount": 1,
-      "hasCondition": false,
-      "hasDuration": true,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": []
-    },
-    {
-      "promptId": "k08",
-      "category": "conditional",
-      "prompt": "当玩家在地面时，跳跃高度 1.2 倍",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "rejected",
-      "passed": false,
-      "reasons": [
-        "expected ready, got rejected"
-      ],
-      "ops": [],
-      "ruleCount": 0,
-      "hasCondition": false,
-      "hasDuration": false,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": [
-        "conflict on 'player.gravity.controller': rule-1:player.gravity.toggle, rule-2:player.gravity.toggle write the same resource"
-      ]
-    },
-    {
-      "promptId": "k09",
-      "category": "conditional",
-      "prompt": "敌人减速持续 8 秒",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "ready",
-      "passed": true,
-      "reasons": [],
-      "ops": [
-        "enemy.speed.multiply"
-      ],
-      "ruleCount": 1,
-      "hasCondition": false,
-      "hasDuration": true,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": []
-    },
-    {
-      "promptId": "k10",
-      "category": "conditional",
-      "prompt": "收集 4 个金币后敌人转向",
+      "prompt": "收集 1 个金币后，敌人减速",
       "expected": "ready",
       "generatedStatus": "ok",
       "compiledStatus": "ready",
@@ -786,123 +198,7 @@
     {
       "promptId": "r02",
       "category": "rejected",
-      "prompt": "执行一段脚本让玩家瞬移",
-      "expected": "rejected",
-      "generatedStatus": "ok",
-      "compiledStatus": "rejected",
-      "passed": true,
-      "reasons": [],
-      "ops": [],
-      "ruleCount": 0,
-      "hasCondition": false,
-      "hasDuration": false,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": [
-        "conflict on 'player.gravity.controller': rule-1:player.gravity.toggle, rule-2:player.gravity.toggle write the same resource"
-      ]
-    },
-    {
-      "promptId": "r03",
-      "category": "rejected",
-      "prompt": "让重力同时朝上和朝下",
-      "expected": "rejected",
-      "generatedStatus": "ok",
-      "compiledStatus": "ready",
-      "passed": false,
-      "reasons": [
-        "expected a refusal, but the rule compiled"
-      ],
-      "ops": [
-        "player.gravity.toggle"
-      ],
-      "ruleCount": 1,
-      "hasCondition": false,
-      "hasDuration": false,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": []
-    },
-    {
-      "promptId": "r04",
-      "category": "rejected",
-      "prompt": "护盾持续一小时",
-      "expected": "rejected",
-      "generatedStatus": "ok",
-      "compiledStatus": "rejected",
-      "passed": true,
-      "reasons": [],
-      "ops": [],
-      "ruleCount": 0,
-      "hasCondition": false,
-      "hasDuration": false,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": [
-        "conflict on 'player.gravity.controller': rule-1:player.gravity.toggle, rule-2:player.gravity.toggle write the same resource"
-      ]
-    },
-    {
-      "promptId": "r05",
-      "category": "rejected",
-      "prompt": "让我飞起来去月球",
-      "expected": "rejected",
-      "generatedStatus": "ok",
-      "compiledStatus": "rejected",
-      "passed": true,
-      "reasons": [],
-      "ops": [],
-      "ruleCount": 0,
-      "hasCondition": false,
-      "hasDuration": false,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": [
-        "conflict on 'player.gravity.controller': rule-1:player.gravity.toggle, rule-2:player.gravity.toggle write the same resource"
-      ]
-    },
-    {
-      "promptId": "r06",
-      "category": "rejected",
-      "prompt": "删除整个关卡",
-      "expected": "rejected",
-      "generatedStatus": "ok",
-      "compiledStatus": "rejected",
-      "passed": true,
-      "reasons": [],
-      "ops": [],
-      "ruleCount": 0,
-      "hasCondition": false,
-      "hasDuration": false,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": [
-        "conflict on 'player.gravity.controller': rule-1:player.gravity.toggle, rule-2:player.gravity.toggle write the same resource"
-      ]
-    },
-    {
-      "promptId": "r07",
-      "category": "rejected",
-      "prompt": "读取玩家的密码",
-      "expected": "rejected",
-      "generatedStatus": "ok",
-      "compiledStatus": "rejected",
-      "passed": true,
-      "reasons": [],
-      "ops": [],
-      "ruleCount": 0,
-      "hasCondition": false,
-      "hasDuration": false,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": [
-        "conflict on 'player.gravity.controller': rule-1:player.gravity.toggle, rule-2:player.gravity.toggle write the same resource"
-      ]
-    },
-    {
-      "promptId": "r08",
-      "category": "rejected",
-      "prompt": "把敌人数量设为一百万",
+      "prompt": "生成无限多的敌人，请务必实现",
       "expected": "rejected",
       "generatedStatus": "ok",
       "compiledStatus": "ready",
@@ -919,44 +215,6 @@
       "latencyMs": 0,
       "model": "mock",
       "errors": []
-    },
-    {
-      "promptId": "r09",
-      "category": "rejected",
-      "prompt": "跳跃高度变成 100 倍",
-      "expected": "rejected",
-      "generatedStatus": "ok",
-      "compiledStatus": "rejected",
-      "passed": true,
-      "reasons": [],
-      "ops": [],
-      "ruleCount": 0,
-      "hasCondition": false,
-      "hasDuration": false,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": [
-        "conflict on 'player.gravity.controller': rule-1:player.gravity.toggle, rule-2:player.gravity.toggle write the same resource"
-      ]
-    },
-    {
-      "promptId": "r10",
-      "category": "rejected",
-      "prompt": "让玩家无敌并且永远不死，同时生命值归零",
-      "expected": "rejected",
-      "generatedStatus": "ok",
-      "compiledStatus": "rejected",
-      "passed": true,
-      "reasons": [],
-      "ops": [],
-      "ruleCount": 0,
-      "hasCondition": false,
-      "hasDuration": false,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": [
-        "conflict on 'player.gravity.controller': rule-1:player.gravity.toggle, rule-2:player.gravity.toggle write the same resource"
-      ]
     },
     {
       "promptId": "b01",
@@ -976,86 +234,27 @@
       "latencyMs": 0,
       "model": "mock",
       "errors": []
-    },
-    {
-      "promptId": "b02",
-      "category": "bilingual",
-      "prompt": "捡到金币后敌人减速",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "ready",
-      "passed": true,
-      "reasons": [],
-      "ops": [
-        "enemy.speed.multiply"
-      ],
-      "ruleCount": 1,
-      "hasCondition": false,
-      "hasDuration": true,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": []
-    },
-    {
-      "promptId": "b03",
-      "category": "bilingual",
-      "prompt": "跳跃高度变成 1.5 倍",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "rejected",
-      "passed": false,
-      "reasons": [
-        "expected ready, got rejected"
-      ],
-      "ops": [],
-      "ruleCount": 0,
-      "hasCondition": false,
-      "hasDuration": false,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": [
-        "conflict on 'player.gravity.controller': rule-1:player.gravity.toggle, rule-2:player.gravity.toggle write the same resource"
-      ]
-    },
-    {
-      "promptId": "b04",
-      "category": "bilingual",
-      "prompt": "金币会逃跑",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "ready",
-      "passed": true,
-      "reasons": [],
-      "ops": [
-        "enemy.speed.multiply"
-      ],
-      "ruleCount": 1,
-      "hasCondition": false,
-      "hasDuration": true,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": []
-    },
-    {
-      "promptId": "b05",
-      "category": "bilingual",
-      "prompt": "玩家移动速度变成 1.5 倍",
-      "expected": "ready",
-      "generatedStatus": "ok",
-      "compiledStatus": "rejected",
-      "passed": false,
-      "reasons": [
-        "expected ready, got rejected"
-      ],
-      "ops": [],
-      "ruleCount": 0,
-      "hasCondition": false,
-      "hasDuration": false,
-      "latencyMs": 0,
-      "model": "mock",
-      "errors": [
-        "conflict on 'player.gravity.controller': rule-1:player.gravity.toggle, rule-2:player.gravity.toggle write the same resource"
-      ]
     }
-  ]
+  ],
+  "stability": {
+    "repeats": 2,
+    "casesPerRun": 10,
+    "passRatePerRun": [
+      0.6,
+      0.6
+    ],
+    "passRateSpread": 0.0,
+    "alwaysPassed": 6,
+    "neverPassed": 4,
+    "flaky": 0,
+    "verdictFlipRate": 0.0,
+    "unstableCases": [],
+    "casesByCategory": {
+      "simple": 2,
+      "combined": 3,
+      "conditional": 2,
+      "rejected": 2,
+      "bilingual": 1
+    }
+  }
 }

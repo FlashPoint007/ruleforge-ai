@@ -39,27 +39,24 @@ The player describes a rule in natural language. A server-side LLM returns contr
 
 ## Current milestone
 
-**RF-001 … RF-013 done.** Two levels, real model, share links, and a 300-prompt
-evaluation at **99.2%** in-scope (95% CI [97.0, 99.8]) with **60/60** rejections
-and **P95 10.3s** (target <= 15s).
+**RF-001 … RF-013 done**, plus a stability measurement.
 
-Evaluation: `tests/eval/generate_corpus.py` produces `prompts.json`;
-`apps/api/eval/run_eval.py` runs it. Read `docs/EVALUATION.md` first.
-- the corpus is **generated, not hand-edited**. A test asserts the JSON matches the
-  generator, because hand edits drift the category counts.
-- bilingual variants must be **authored, not mechanically wrapped**. Wrapping
-  sentences in 当…时 produced ungrammatical Chinese that the model rightly refused,
-  and it looked like a product defect.
+Evaluation: `tests/eval/generate_corpus.py` generates `prompts.json`;
+`apps/api/eval/run_eval.py` runs it, with `--repeats` and stratified `--sample`.
+Read `docs/EVALUATION.md` before touching either.
 
-Rules this evaluation established:
-- the system prompt lists every action with its **exact parameter names and
-  ranges**, and states that level-scoped ids may be omitted (the server fills them).
-- the compiler fills level ids from the level's own capabilities.
-- every registered event must actually be emitted (`timer.interval` was not).
-- unknown action parameters are rejected, never silently dropped.
-- when measuring, decide whether a failure belongs to the product or to the *test*.
-  Five failures across two rounds were my own bad data; "fixing" the product for
-  them would have broken working behaviour.
+Measured facts (do not restate them more confidently than this):
+- 300 prompts, 99.2% in-scope, 95% CI [97.0, 99.8], 60/60 rejections, P95 10.3s.
+- **Verdicts are stable**: 3 runs x 60 sampled cases = 180 calls, zero flips. The two
+  failures from the single full run both passed 8/8 when probed directly, so they
+  were transient noise, not defects. A single-run number carries roughly ±0.5% noise.
+- **Latency is not stable**: P95 swings between 10s and 15s across runs, and one
+  prompt reached 40.7s after a truncation retry. "P95 meets 15s" is not a property
+  to rely on.
+
+Corpus rules: generated, not hand-edited (a test enforces it); bilingual variants
+authored, never mechanically wrapped; sample stratified and evenly spread, because
+a prefix sample or a dropped category would look stable for the wrong reason.
 
 Quality gates that must stay green:
 
@@ -73,6 +70,6 @@ cd apps/api && uv run pytest -q && uv run ruff check .
 
 ## Next task
 
-The corpus is generated rather than taken from real player input, and each prompt is
-sampled once. The honest next measurement is stability: run the same corpus three
-times and report variance, or collect real player prompts.
+Latency is the remaining risk, not correctness. Options: stop retrying truncated
+generations (faster, worse UX), raise `max_tokens` (slower, better), or stream.
+That is a product decision — do not pick silently.
