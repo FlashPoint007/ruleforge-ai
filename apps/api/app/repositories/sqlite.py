@@ -10,6 +10,7 @@ with different content.
 
 import json
 import sqlite3
+import threading
 from pathlib import Path
 
 from app.domain.models import (
@@ -90,12 +91,20 @@ class SqliteDatabase:
             Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         self._connection = sqlite3.connect(self.path, check_same_thread=False)
         self._connection.row_factory = sqlite3.Row
+        # FastAPI runs sync endpoints in a thread pool, so several requests can
+        # reach this one connection at once. sqlite3 serialises individual calls
+        # but not a read-modify-write sequence, so the writes are locked here.
+        self._lock = threading.Lock()
         self._connection.executescript(SCHEMA)
         self._connection.commit()
 
     @property
     def connection(self) -> sqlite3.Connection:
         return self._connection
+
+    @property
+    def lock(self) -> threading.Lock:
+        return self._lock
 
     def close(self) -> None:
         self._connection.close()
@@ -113,26 +122,27 @@ class SqliteRulePackRepository:
         # INSERT OR IGNORE: an existing pack_id keeps its original content. A
         # later attempt to store different content under the same id is refused
         # by the primary key rather than silently overwriting a shared link.
-        self._db.connection.execute(
+        with self._db.lock:
+            self._db.connection.execute(
             """
             INSERT OR IGNORE INTO rule_packs (
                 pack_id, owner_id, dsl_version, engine_version,
                 level_id, level_version, content_json, content_hash, created_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (
-                pack.packId,
-                owner_id,
-                pack.dslVersion,
-                pack.engineVersion,
-                pack.levelId,
-                pack.levelVersion,
-                content_json,
-                content_hash,
-                created_at,
-            ),
-        )
-        self._db.connection.commit()
+                (
+                    pack.packId,
+                    owner_id,
+                    pack.dslVersion,
+                    pack.engineVersion,
+                    pack.levelId,
+                    pack.levelVersion,
+                    content_json,
+                    content_hash,
+                    created_at,
+                ),
+            )
+            self._db.connection.commit()
         return pack.packId
 
     def get_pack(self, pack_id: str) -> RulePack | None:

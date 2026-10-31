@@ -164,49 +164,60 @@ export function RulePanel({
 
     let cancelled = false;
     let retry: ReturnType<typeof setTimeout> | null = null;
+    let attempts = 0;
+    const MAX_ATTEMPTS = 40;
 
-    const load = (): void => {
-      void fetchChallenge(initialChallengeId).then((result) => {
+    const applyWhenReady = (pack: unknown, challengeId: string, packId: string): void => {
       if (cancelled) {
         return;
       }
 
-        if (!result.ok) {
-          setServerMessage(`无法载入挑战：${result.reason}`);
-          return;
-        }
+      if (applyRulePack(pack)) {
+        setAppliedChallenge(challengeId);
+        setLastPackId(packId);
+        setServerMessage("已载入分享的挑战规则。");
+        return;
+      }
 
-        const { challenge } = result;
-        const compatibility = checkChallengeCompatibility(challenge);
-
-        if (compatibility.level === "rejected") {
-          setServerMessage(`这条挑战无法在当前版本运行：${compatibility.reason}`);
-          return;
-        }
-
-        if (!challenge.rulePack) {
-          setServerMessage("这条挑战没有附带规则内容。");
-          return;
-        }
-
-      if (!applyRulePack(challenge.rulePack)) {
-            // Phaser mounts asynchronously. A single attempt ran before the scene
-          // existed and silently dropped the rule, so poll briefly instead.
-          retry = setTimeout(load, 250);
-          return;
-        }
-
-        setAppliedChallenge(challenge.challengeId);
-        setLastPackId(challenge.packId);
-        setServerMessage(
-          compatibility.level === "warning"
-            ? `已载入挑战：${compatibility.reason}`
-            : "已载入分享的挑战规则。",
-        );
-      });
+      // Phaser mounts asynchronously, so the first attempts legitimately fail.
+      // Poll with a ceiling; never fetch again — the pack is already in hand.
+      attempts += 1;
+      if (attempts >= MAX_ATTEMPTS) {
+        setServerMessage("挑战已载入，但实验室尚未就绪。请点「进入实验室」后重试。");
+        return;
+      }
+      retry = setTimeout(() => applyWhenReady(pack, challengeId, packId), 250);
     };
 
-    load();
+    void fetchChallenge(initialChallengeId).then((result) => {
+      if (cancelled) {
+        return;
+      }
+
+      if (!result.ok) {
+        setServerMessage(`无法载入挑战：${result.reason}`);
+        return;
+      }
+
+      const { challenge } = result;
+      const compatibility = checkChallengeCompatibility(challenge);
+
+      if (compatibility.level === "rejected") {
+        setServerMessage(`这条挑战无法在当前版本运行：${compatibility.reason}`);
+        return;
+      }
+
+      if (!challenge.rulePack) {
+        setServerMessage("这条挑战没有附带规则内容。");
+        return;
+      }
+
+      if (compatibility.level === "warning") {
+        setServerMessage(`已载入挑战：${compatibility.reason}`);
+      }
+
+      applyWhenReady(challenge.rulePack, challenge.challengeId, challenge.packId);
+    });
 
     return () => {
       cancelled = true;

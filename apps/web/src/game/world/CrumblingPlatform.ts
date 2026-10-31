@@ -14,12 +14,15 @@ export class CrumblingPlatform {
   private readonly visual: Phaser.GameObjects.NineSlice;
   private readonly scene: Phaser.Scene;
   private readonly delayMs: number;
+  /** Authored x, so the shake tween can be undone on reset. */
+  private readonly originX: number;
   private timer: Phaser.Time.TimerEvent | null = null;
   private collapsed = false;
 
   constructor(scene: Phaser.Scene, def: CrumblingDef) {
     this.scene = scene;
     this.delayMs = def.delayMs;
+    this.originX = def.x;
 
     this.visual = new Phaser.GameObjects.NineSlice(
       scene,
@@ -93,7 +96,9 @@ export class CrumblingPlatform {
       this.timer = null;
     }
     this.scene.tweens.killTweensOf(this.visual);
-    this.visual.setPosition(this.visual.x, this.visual.y);
+    // The shake tween offsets x; restore the authored position, not the current
+    // one (setPosition(x, y) with the current values is a no-op).
+    this.visual.setX(this.originX);
     this.visual.setVisible(true);
     this.body.setVisible(false);
     const body = this.body.body as Phaser.Physics.Arcade.StaticBody;

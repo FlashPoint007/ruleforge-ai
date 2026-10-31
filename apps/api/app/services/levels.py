@@ -20,10 +20,35 @@ def _levels_dir() -> Path:
     raise RuntimeError("game-content/levels not found; cannot build level registry")
 
 
-def _capabilities(document: dict[str, Any]) -> LevelCapabilities:
+REQUIRED_LEVEL_FIELDS = ("id", "version", "platforms", "spawn", "world")
+
+
+class LevelLoadError(RuntimeError):
+    """A level file cannot be used.
+
+    Raised with the file name and the offending field: a bare KeyError at import
+    time left no way to tell which of several level files was broken.
+    """
+
+
+def _require(document: dict[str, Any], field: str, source: Path) -> Any:
+    if field not in document:
+        raise LevelLoadError(f"{source.name}: missing required field {field!r}")
+    return document[field]
+
+
+def _capabilities(document: dict[str, Any], source: Path) -> LevelCapabilities:
+    for field in REQUIRED_LEVEL_FIELDS:
+        _require(document, field, source)
+
+    for list_field in ("enemies", "coins", "crumbling", "hideablePlatforms", "checkpoints"):
+        value = document.get(list_field, [])
+        if not isinstance(value, list):
+            raise LevelLoadError(f"{source.name}: {list_field!r} must be a list")
+
     return LevelCapabilities(
-        levelId=document["id"],
-        levelVersion=document["version"],
+        levelId=str(document["id"]),
+        levelVersion=str(document["version"]),
         hasEnemies=len(document.get("enemies", [])) > 0,
         hasCoins=len(document.get("coins", [])) > 0,
         collapsiblePlatforms=len(document.get("crumbling", [])),
@@ -42,9 +67,9 @@ def load_level_capabilities() -> dict[str, LevelCapabilities]:
         try:
             document = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as error:
-            raise RuntimeError(f"unreadable level file {path.name}: {error}") from error
+            raise LevelLoadError(f"{path.name}: not valid JSON ({error})") from error
 
-        capabilities = _capabilities(document)
+        capabilities = _capabilities(document, path)
         levels[capabilities.levelId] = capabilities
 
     if not levels:

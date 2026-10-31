@@ -40,6 +40,11 @@ export class HideablePlatform {
     return this.visible;
   }
 
+  /** Restores the level's authored state. */
+  reset(): void {
+    this.setVisible(true);
+  }
+
   setVisible(visible: boolean): void {
     if (this.visible === visible) {
       return;

@@ -39,24 +39,22 @@ The player describes a rule in natural language. A server-side LLM returns contr
 
 ## Current milestone
 
-**RF-001 … RF-013 done**, plus a stability measurement.
+**RF-001 … RF-013 done**, plus two defect passes.
 
-Evaluation: `tests/eval/generate_corpus.py` generates `prompts.json`;
-`apps/api/eval/run_eval.py` runs it, with `--repeats` and stratified `--sample`.
-Read `docs/EVALUATION.md` before touching either.
-
-Measured facts (do not restate them more confidently than this):
-- 300 prompts, 99.2% in-scope, 95% CI [97.0, 99.8], 60/60 rejections, P95 10.3s.
-- **Verdicts are stable**: 3 runs x 60 sampled cases = 180 calls, zero flips. The two
-  failures from the single full run both passed 8/8 when probed directly, so they
-  were transient noise, not defects. A single-run number carries roughly ±0.5% noise.
-- **Latency is not stable**: P95 swings between 10s and 15s across runs, and one
-  prompt reached 40.7s after a truncation retry. "P95 meets 15s" is not a property
-  to rely on.
-
-Corpus rules: generated, not hand-edited (a test enforces it); bilingual variants
-authored, never mechanically wrapped; sample stratified and evenly spread, because
-a prefix sample or a dropped category would look stable for the wrong reason.
+Invariants that keep getting rediscovered — do not undo them:
+- restarting a level must reset **every** piece of run state: coins, enemies,
+  crumbling platforms **and hideable platforms**. Missing one produces a
+  half-restarted level that looks like a bug in the rule engine.
+- periodic events must **skip the backlog**, not drain it one per frame. A paused
+  scene otherwise emits a burst of `timer.interval` on resume.
+- polling for an asynchronously mounted game must be **bounded and fetch once**.
+  An unbounded retry re-requests the network every 250ms for as long as the tab
+  is open.
+- level files are validated on load with the **file name and field** in the error.
+  A bare KeyError at import gave no way to tell which level was broken.
+- the SQLite connection is shared by FastAPI's thread pool, so writes take a lock.
+- extract scheduling/parsing rules into their own module and test **that module**.
+  A test that re-implements the formula proves the formula, not the product.
 
 Quality gates that must stay green:
 
@@ -70,6 +68,5 @@ cd apps/api && uv run pytest -q && uv run ruff check .
 
 ## Next task
 
-Latency is the remaining risk, not correctness. Options: stop retrying truncated
-generations (faster, worse UX), raise `max_tokens` (slower, better), or stream.
-That is a product decision — do not pick silently.
+Mobile: the touch controls have never been exercised on a real device, and 60fps
+has never been measured. That is the largest untested surface left.

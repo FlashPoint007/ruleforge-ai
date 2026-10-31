@@ -11,6 +11,7 @@ import type { RulesChangedPayload } from "@/game/rules/types";
 import { publishHud } from "@/game/scenes/UIScene";
 import { InputSystem } from "@/game/systems/InputSystem";
 import { resetTouch } from "@/game/systems/inputBus";
+import { nextFireTime } from "@/game/systems/timerScheduling";
 import { createBackdrop } from "@/game/world/backdrop";
 import { CrumblingPlatform } from "@/game/world/CrumblingPlatform";
 import { HideablePlatform } from "@/game/world/HideablePlatform";
@@ -469,9 +470,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    // Advance by whole intervals rather than snapping to now, so the cadence does
-    // not drift and a long frame cannot emit a burst.
-    this.nextTimerAtMs += interval;
+    this.nextTimerAtMs = nextFireTime(this.nextTimerAtMs, now, interval);
     this.runtime.emit("timer.interval", now);
   }
 
@@ -566,6 +565,11 @@ export class GameScene extends Phaser.Scene {
       enemy.revive();
     }
     for (const platform of this.crumbling) {
+      platform.reset();
+    }
+    // Hideable platforms are run state too: a rule may have hidden one, and
+    // leaving it hidden is the half-restarted level this method exists to avoid.
+    for (const platform of this.hideablePlatforms.values()) {
       platform.reset();
     }
 
